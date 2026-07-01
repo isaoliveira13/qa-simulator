@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ISA — QA Conversacional</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231a1a18'/%3E%3Cpath fill='white' d='M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm-1 11H9V8h2v7zm4 0h-2V8h2v7z'/%3E%3C/svg%3E" />
 <style>
   :root {
     --bg: #f5f5f3;
@@ -51,21 +52,31 @@
   .preset-btn { font-size: 12px; font-family: inherit; padding: 5px 14px; border-radius: 20px; cursor: pointer; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-secondary); transition: all .15s; }
   .preset-btn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent); }
   .preset-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-  .actions { display: flex; align-items: center; gap: 14px; }
+  .actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   .btn-run { font-family: inherit; font-size: 14px; font-weight: 500; background: var(--accent); color: white; border: none; border-radius: var(--radius); padding: 10px 22px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background .15s; }
   .btn-run:hover:not(:disabled) { background: var(--accent-hover); }
   .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-pause { font-family: inherit; font-size: 14px; font-weight: 500; background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 10px 20px; cursor: pointer; display: none; align-items: center; gap: 8px; transition: all .15s; }
+  .btn-pause:hover:not(:disabled) { background: var(--bg); }
+  .btn-pause:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-pause.is-paused { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-stop { font-family: inherit; font-size: 14px; font-weight: 500; background: var(--surface); color: var(--danger-text); border: 1px solid var(--danger-border); border-radius: var(--radius); padding: 10px 20px; cursor: pointer; display: none; align-items: center; gap: 8px; transition: all .15s; }
+  .btn-stop:hover:not(:disabled) { background: var(--danger-bg); }
+  .btn-stop:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-secondary { font-family: inherit; font-size: 13px; font-weight: 500; background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s; }
   .btn-secondary:hover { background: var(--bg); }
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
   .timer { font-size: 13px; color: var(--text-muted); display: none; }
   .status-box { border-radius: 10px; padding: 14px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
   .status-idle { background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); }
   .status-running { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); }
+  .status-paused { background: var(--accent-bg); border: 1px solid var(--border-strong); color: var(--accent-text); }
   .status-ok { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
   .status-err { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger-text); }
   .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .dot-idle { background: var(--text-muted); }
   .dot-run { background: var(--warning-text); animation: pulse 1.2s infinite; }
+  .dot-paused { background: var(--accent); }
   .dot-ok { background: var(--success-text); }
   .dot-err { background: var(--danger-text); }
   @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
@@ -75,6 +86,8 @@
   .metric-val { font-size: 22px; font-weight: 600; }
   .metric-val.ok { color: var(--success-text); }
   .metric-val.err { color: var(--danger-text); }
+  .metric-val.running { color: var(--warning-text); }
+  .metric-val.neutral { color: var(--accent-text); }
   .transcript-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .transcript-header h3 { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
   .transcript-box { background: #1a1a1a; border-radius: 10px; padding: 1.25rem; font-size: 12.5px; font-family: var(--mono); line-height: 1.8; color: #d4d4d4; max-height: 480px; overflow-y: auto; }
@@ -133,13 +146,14 @@
           <input type="text" id="sub_slug" value="vagas" />
         </div>
         <div class="field">
-          <label>Máx. turnos</label>
-          <input type="number" id="max_turnos" value="20" min="3" max="60" />
+          <label>Máx. turnos <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <input type="number" id="max_turnos" value="20" min="3" max="200" placeholder="100 (padrão)" />
         </div>
       </div>
+      <div class="hint" style="margin-top:-8px">Deixe "Máx. turnos" em branco para não limitar por turno — a conversa só encerra quando o avatar concluir ou travar. Isso evita marcar como FALHA um teste que só precisava de mais turnos.</div>
       <div class="grid2">
         <div class="field">
-          <label>Host token</label>
+          <label>Host token <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
           <input type="password" id="host_token" value="" autocomplete="off" />
         </div>
         <div class="field">
@@ -147,6 +161,7 @@
           <input type="text" id="host_id" value="00000000-0000-0000-0000-000000000000" />
         </div>
       </div>
+      <div class="hint" style="margin-top:-8px">Deixe "Host token" em branco se o n8n tiver a variável ZENTA_DOMAIN_TOKEN configurada — o token do host é resolvido automaticamente a partir do Host slug.</div>
       <div class="field">
         <label>Saudação inicial</label>
         <input type="text" id="saudacao" value="Olá! Vi a vaga de QA Junior e tenho interesse em me candidatar." />
@@ -174,15 +189,23 @@
       <div class="field">
         <label>URL do webhook PAI (n8n)</label>
         <input type="text" id="webhook_url" value="https://n8n-service.zenta.to/webhook/qa-conversacional-pai" />
-        <div class="hint">O workflow PAI precisa estar ativo no n8n para receber as chamadas.</div>
+        <div class="hint">O workflow PAI precisa estar ativo no n8n para receber as chamadas. Cada turno da conversa é enviado como uma chamada curta e independente — isso evita erros de timeout em testes longos e permite pausar a qualquer momento.</div>
       </div>
     </div>
   </div>
 
   <div class="actions">
-    <button class="btn-run" id="btn-run" onclick="runTest()">
+    <button class="btn-run" id="btn-run" onclick="iniciarTeste()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       Iniciar teste
+    </button>
+    <button class="btn-pause" id="btn-pause" onclick="togglePause()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" id="pause-icon"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      <span id="pause-label">Pausar</span>
+    </button>
+    <button class="btn-stop" id="btn-encerrar" onclick="encerrarTeste()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+      Encerrar e ver resultado
     </button>
     <span class="timer" id="timer">0:00 em execução</span>
   </div>
@@ -197,7 +220,7 @@
     <div>
       <div class="transcript-header">
         <h3>Transcrição da conversa</h3>
-        <button class="btn-secondary" onclick="exportPDF()">
+        <button class="btn-secondary" id="btn-pdf" onclick="exportPDF()" disabled>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>
           Exportar PDF
         </button>
@@ -242,23 +265,30 @@ const PRESETS = [
 
 let timerInterval = null;
 let lastResult = null;
+let isRunning = false;
+let isPaused = false;
+let currentConversationId = null;
+let transcriptAccum = [];
+let secsElapsed = 0;
+let encerrarSolicitado = false;
 
 function g(id) { return document.getElementById(id); }
 
 function setStatus(type, msg) {
   g('status-box').className = 'status-box status-' + type;
-  g('dot').className = 'dot dot-' + { idle:'idle', running:'run', ok:'ok', err:'err' }[type];
+  g('dot').className = 'dot dot-' + { idle:'idle', running:'run', paused:'paused', ok:'ok', err:'err' }[type];
   g('status-msg').textContent = msg;
 }
 
 function startTimer() {
   const el = g('timer');
   el.style.display = 'inline';
-  let secs = 0;
+  secsElapsed = 0;
+  clearInterval(timerInterval);
   timerInterval = setInterval(() => {
-    secs++;
-    const m = Math.floor(secs / 60), s = secs % 60;
-    el.textContent = m + ':' + s.toString().padStart(2,'0') + ' em execução';
+    secsElapsed++;
+    const m = Math.floor(secsElapsed / 60), s = secsElapsed % 60;
+    el.textContent = m + ':' + s.toString().padStart(2,'0') + (isPaused ? ' (pausado)' : ' em execução');
   }, 1000);
 }
 
@@ -278,16 +308,37 @@ function applyPreset(i) {
   document.querySelectorAll('.preset-btn').forEach((b, j) => b.classList.toggle('active', j === i));
 }
 
+function turnBlockHTML(t) {
+  return '<div class="turn-block">' +
+    '<div class="turn-header">Turno ' + t.turno + '</div>' +
+    '<div class="sim-line">Simulador: ' + (t.enviado || '') + '</div>' +
+    '<div class="avatar-line">Avatar: ' + (t.resposta_avatar || '(sem resposta)') + '</div>' +
+    '</div>';
+}
+
 function buildTranscript(log) {
-  return log.map(t => {
-    const div = document.createElement('div');
-    div.className = 'turn-block';
-    div.innerHTML =
-      '<div class="turn-header">Turno ' + t.turno + '</div>' +
-      '<div class="sim-line">Simulador: ' + (t.enviado || '') + '</div>' +
-      '<div class="avatar-line">Avatar: ' + (t.resposta_avatar || '(sem resposta)') + '</div>';
-    return div.outerHTML;
-  }).join('');
+  return log.map(turnBlockHTML).join('');
+}
+
+function appendTurnToTranscript(t) {
+  const box = g('transcript-box');
+  box.insertAdjacentHTML('beforeend', turnBlockHTML(t));
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderMetricsParcial(data) {
+  g('metrics').innerHTML =
+    '<div class="metric"><div class="metric-label">Status</div><div class="metric-val running">' + (isPaused ? 'Pausado' : 'Em andamento') + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Turno atual</div><div class="metric-val">' + (data.turno_atual||0) + (data.max_turnos ? '<span style="font-size:14px;font-weight:400;color:var(--text-muted)"> / ' + data.max_turnos + '</span>' : '') + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Tempo</div><div class="metric-val">' + secsElapsed + '<span style="font-size:14px;font-weight:400;color:var(--text-muted)">s</span></div></div>';
+}
+
+function renderMetricsFinal(data, sucesso, manual) {
+  const cls = sucesso ? 'ok' : (manual ? 'neutral' : 'err');
+  g('metrics').innerHTML =
+    '<div class="metric"><div class="metric-label">Resultado</div><div class="metric-val ' + cls + '">' + (data.resultado||'—') + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Turnos</div><div class="metric-val">' + (data.total_turnos||0) + '<span style="font-size:14px;font-weight:400;color:var(--text-muted)"> / ' + (data.max_turnos||'—') + '</span></div></div>' +
+    '<div class="metric"><div class="metric-label">Tempo</div><div class="metric-val">' + (data.tempo_segundos||0) + '<span style="font-size:14px;font-weight:400;color:var(--text-muted)">s</span></div></div>';
 }
 
 function exportPDF() {
@@ -317,6 +368,7 @@ function exportPDF() {
     .meta-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
     .meta-val.ok { color: #15803d; }
     .meta-val.err { color: #dc2626; }
+    .meta-val.neutral { color: #1d4ed8; }
     .info-box { background: #f5f5f3; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 12px; line-height: 1.6; }
     .info-box strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #a0a09b; margin-bottom: 4px; }
     h2 { font-size: 13px; font-weight: 600; color: #6b6b67; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; border-top: 1px solid #e2e2de; padding-top: 1rem; }
@@ -331,8 +383,8 @@ function exportPDF() {
   <h1>Relatório de QA — ISA</h1>
   <div class="subtitle">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
   <div class="meta-grid">
-    <div class="meta-box"><div class="meta-label">Resultado</div><div class="meta-val ${d.resultado === 'SUCESSO' ? 'ok' : 'err'}">${d.resultado || '—'}</div></div>
-    <div class="meta-box"><div class="meta-label">Turnos</div><div class="meta-val">${d.total_turnos || 0} / ${d.max_turnos || 20}</div></div>
+    <div class="meta-box"><div class="meta-label">Resultado</div><div class="meta-val ${d.resultado === 'SUCESSO' ? 'ok' : (d.resultado === 'ENCERRADO' ? 'neutral' : 'err')}">${d.resultado || '—'}</div></div>
+    <div class="meta-box"><div class="meta-label">Turnos</div><div class="meta-val">${d.total_turnos || 0} / ${d.max_turnos || '—'}</div></div>
     <div class="meta-box"><div class="meta-label">Tempo</div><div class="meta-val">${d.tempo_segundos || 0}s</div></div>
   </div>
   <div class="info-box"><strong>Cenário</strong>${cenario}</div>
@@ -346,13 +398,83 @@ function exportPDF() {
   setTimeout(() => win.print(), 400);
 }
 
-async function runTest() {
+async function chamarWebhook(payload) {
+  const webhookUrl = g('webhook_url').value.trim();
+  const res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  if (!res.ok) {
+    let detalhe = res.statusText;
+    try { const j = await res.json(); detalhe = j.message || j.error || detalhe; } catch(e) {}
+    throw new Error('HTTP ' + res.status + ': ' + detalhe);
+  }
+  return res.json();
+}
+
+function pararUI(erro) {
+  isRunning = false;
+  isPaused = false;
+  encerrarSolicitado = false;
+  stopTimer();
+  g('btn-run').disabled = false;
+  g('btn-pause').style.display = 'none';
+  g('btn-encerrar').style.display = 'none';
+  if (erro) setStatus('err', 'Erro ao chamar o webhook: ' + erro.message + '. Verifique se o PAI está ativo no n8n e se a URL está correta.');
+}
+
+function setPauseButtonUI(paused) {
+  const btn = g('btn-pause');
+  btn.classList.toggle('is-paused', paused);
+  g('pause-label').textContent = paused ? 'Retomar' : 'Pausar';
+  g('pause-icon').innerHTML = paused
+    ? '<path d="M8 5v14l11-7z"/>'
+    : '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+}
+
+async function togglePause() {
+  if (!isRunning) return;
+  isPaused = !isPaused;
+  setPauseButtonUI(isPaused);
+  if (isPaused) {
+    setStatus('paused', 'Teste pausado. Nenhuma nova mensagem será enviada até você clicar em retomar.');
+  } else {
+    setStatus('running', 'Retomando o teste...');
+    await executarLoop({ conversation_id: currentConversationId });
+  }
+}
+
+async function finalizarManualmente() {
+  try {
+    const data = await chamarWebhook({ conversation_id: currentConversationId, encerrar: true });
+    finalizarTeste(data);
+  } catch (e) {
+    pararUI(e);
+  } finally {
+    encerrarSolicitado = false;
+  }
+}
+
+async function encerrarTeste() {
+  if ((!isRunning && !isPaused) || !currentConversationId) return;
+  encerrarSolicitado = true;
+  g('btn-encerrar').disabled = true;
+  g('btn-pause').disabled = true;
+  setStatus('running', 'Encerrando teste e gerando relatório...');
+
+  if (isPaused) {
+    // Nenhum turno em andamento — finaliza imediatamente.
+    isPaused = false;
+    await finalizarManualmente();
+  }
+  // Se um turno estiver em andamento, o loop (executarLoop) percebe
+  // encerrarSolicitado assim que a resposta atual chegar e finaliza a partir dali.
+}
+
+async function iniciarTeste() {
   const webhookUrl = g('webhook_url').value.trim();
   const hostToken = g('host_token').value.trim();
   const hostId = g('host_id').value.trim();
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
-  const maxTurnos = parseInt(g('max_turnos').value) || 20;
+  const maxTurnosRaw = g('max_turnos').value.trim();
   const saudacao = g('saudacao').value.trim();
   const cenario = g('cenario').value.trim();
   const criterio = g('criterio').value.trim();
@@ -361,50 +483,106 @@ async function runTest() {
   if (!cenario) { setStatus('err', 'Descreva o cenário do teste.'); return; }
   if (!criterio) { setStatus('err', 'Defina o critério de sucesso.'); return; }
 
+  isRunning = true;
+  isPaused = false;
+  encerrarSolicitado = false;
+  currentConversationId = null;
+  transcriptAccum = [];
+  lastResult = null;
+
   g('btn-run').disabled = true;
+  g('btn-pdf').disabled = true;
+  g('btn-pause').style.display = 'flex';
+  g('btn-pause').disabled = false;
+  g('btn-encerrar').style.display = 'flex';
+  g('btn-encerrar').disabled = false;
+  setPauseButtonUI(false);
   g('result-area').style.display = 'none';
-  setStatus('running', 'Teste em andamento — a conversa está sendo simulada. Isso pode levar alguns minutos...');
+  g('metrics').innerHTML = '';
+  g('transcript-box').innerHTML = '';
+  setStatus('running', 'Teste em andamento — turno 1...');
   startTimer();
 
-  const payload = {
-    config: { host_slug: hostSlug, host_token: hostToken, host_id: hostId, max_turnos: maxTurnos, saudacao_inicial: saudacao },
-    cenario, criterio_sucesso: criterio
-  };
-  if (subSlug) payload.config.sub_slug = subSlug;
+  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao };
+  if (hostToken) config.host_token = hostToken;
+  if (subSlug) config.sub_slug = subSlug;
+  if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
 
-  try {
-    const res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + res.statusText);
-    const data = await res.json();
-    stopTimer();
-    g('btn-run').disabled = false;
-    lastResult = data;
+  await executarLoop({ config, cenario, criterio_sucesso: criterio });
+}
 
-    const sucesso = data.resultado === 'SUCESSO';
-    setStatus(sucesso ? 'ok' : 'err',
-      sucesso
-        ? 'Teste concluído com sucesso em ' + data.total_turnos + ' turnos (' + data.tempo_segundos + 's).'
-        : 'Falha: ' + (data.motivo_encerramento || 'Não concluído')
-    );
-
-    g('metrics').innerHTML =
-      '<div class="metric"><div class="metric-label">Resultado</div><div class="metric-val ' + (sucesso?'ok':'err') + '">' + (data.resultado||'—') + '</div></div>' +
-      '<div class="metric"><div class="metric-label">Turnos</div><div class="metric-val">' + (data.total_turnos||0) + '<span style="font-size:14px;font-weight:400;color:var(--text-muted)"> / ' + (data.max_turnos||maxTurnos) + '</span></div></div>' +
-      '<div class="metric"><div class="metric-label">Tempo</div><div class="metric-val">' + (data.tempo_segundos||0) + '<span style="font-size:14px;font-weight:400;color:var(--text-muted)">s</span></div></div>';
-
-    if (data.transcricao && data.transcricao.length) {
-      g('transcript-box').innerHTML = buildTranscript(data.transcricao);
-    } else {
-      g('transcript-box').innerHTML = '<span style="color:#6b6b67">Nenhuma mensagem registrada.</span>';
+async function executarLoop(payloadInicial) {
+  let payload = payloadInicial;
+  while (isRunning && !isPaused) {
+    let data;
+    try {
+      data = await chamarWebhook(payload);
+    } catch (e) {
+      pararUI(e);
+      return;
     }
 
-    g('result-area').style.display = 'flex';
+    if (data.status === 'continuar') {
+      currentConversationId = data.conversation_id;
+      if (data.ultimo_turno) {
+        transcriptAccum.push(data.ultimo_turno);
+        appendTurnToTranscript(data.ultimo_turno);
+      }
+      renderMetricsParcial(data);
+      g('result-area').style.display = 'flex';
 
-  } catch(e) {
-    stopTimer();
-    g('btn-run').disabled = false;
-    setStatus('err', 'Erro ao chamar o webhook: ' + e.message + '. Verifique se o PAI está ativo no n8n e se a URL está correta.');
+      if (encerrarSolicitado) {
+        await finalizarManualmente();
+        return;
+      }
+
+      setStatus('running', 'Teste em andamento — turno ' + data.turno_atual + (data.max_turnos ? ' / ' + data.max_turnos : '') + '...');
+      payload = { conversation_id: currentConversationId };
+      continue;
+    }
+
+    // Resultado final (SUCESSO ou FALHA)
+    finalizarTeste(data);
+    return;
   }
+
+  if (isRunning && isPaused) {
+    stopTimer();
+    startTimer();
+    setStatus('paused', 'Teste pausado. Nenhuma nova mensagem será enviada até você clicar em retomar.');
+  }
+}
+
+function finalizarTeste(data) {
+  isRunning = false;
+  isPaused = false;
+  encerrarSolicitado = false;
+  stopTimer();
+  g('btn-run').disabled = false;
+  g('btn-pause').style.display = 'none';
+  g('btn-encerrar').style.display = 'none';
+  g('btn-pdf').disabled = false;
+  lastResult = data;
+
+  const sucesso = data.resultado === 'SUCESSO';
+  const manual = data.resultado === 'ENCERRADO';
+  setStatus(sucesso ? 'ok' : (manual ? 'paused' : 'err'),
+    sucesso
+      ? 'Teste concluído com sucesso em ' + data.total_turnos + ' turnos (' + data.tempo_segundos + 's).'
+      : manual
+        ? 'Teste encerrado manualmente após ' + data.total_turnos + ' turnos (' + data.tempo_segundos + 's).'
+        : 'Falha: ' + (data.motivo_encerramento || 'Não concluído')
+  );
+
+  renderMetricsFinal(data, sucesso, manual);
+
+  if (data.transcricao && data.transcricao.length) {
+    g('transcript-box').innerHTML = buildTranscript(data.transcricao);
+  } else {
+    g('transcript-box').innerHTML = '<span style="color:#6b6b67">Nenhuma mensagem registrada.</span>';
+  }
+
+  g('result-area').style.display = 'flex';
 }
 
 (function init() {
