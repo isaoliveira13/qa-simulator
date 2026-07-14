@@ -55,6 +55,7 @@ async function inicializarSessao(body) {
     conversationId,
     cenario: String(body.cenario),
     criterioSucesso: String(body.criterio_sucesso),
+    dadosFixos: (body.dados_fixos && typeof body.dados_fixos === 'object') ? body.dados_fixos : null,
     maxTurnos,
     saudacao,
     startISO: new Date().toISOString(),
