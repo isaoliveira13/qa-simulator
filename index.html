@@ -37,15 +37,21 @@
   .logo svg { width: 16px; height: 16px; fill: white; }
   header h1 { font-size: 15px; font-weight: 500; }
   header span { font-size: 13px; color: var(--text-muted); margin-left: 4px; }
+  .env-picker { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .env-picker label { font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
+  .env-picker select { font-family: inherit; font-size: 13px; font-weight: 500; color: var(--accent-text); background: var(--accent-bg); border: 1px solid var(--border-strong); border-radius: 20px; padding: 6px 14px; cursor: pointer; outline: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .env-picker select:hover { border-color: var(--accent); box-shadow: 0 6px 14px rgba(99,102,241,.18); transform: translateY(-1px); }
+  .env-picker select:focus { border-color: var(--accent); }
   .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1.5rem; }
   .section-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 14px; transition: transform .2s ease, box-shadow .2s ease; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(32,28,53,.07); }
   .field { display: flex; flex-direction: column; gap: 5px; }
   .field label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-  .field input, .field textarea { font-family: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; width: 100%; outline: none; transition: border-color .15s; }
-  .field input, .field textarea { transition: border-color .15s, transform .15s; }
-  .field input:focus, .field textarea:focus { border-color: var(--accent); transform: translateY(-1px); }
+  .field input, .field textarea, .field select { font-family: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; width: 100%; outline: none; transition: border-color .15s; }
+  .field input, .field textarea, .field select { transition: border-color .15s, transform .15s; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); transform: translateY(-1px); }
+  .field select { cursor: pointer; }
   .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
   .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -156,6 +162,14 @@
   </div>
   <h1>ISA — QA Conversacional</h1>
   <span>Zenta</span>
+  <div class="env-picker">
+    <label for="ambiente_zenta">Ambiente</label>
+    <select id="ambiente_zenta">
+      <option value="prod" selected>Produção</option>
+      <option value="stage">Stage</option>
+      <option value="homolog">Homolog</option>
+    </select>
+  </div>
 </header>
 
 <div class="main">
@@ -286,6 +300,7 @@
         <button class="btn-secondary" onclick="gerarPessoasFicticias()">Gerar e adicionar</button>
         <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="10" min="1" max="30" /></span>
       </div>
+      <div class="hint" style="margin-top:-4px">Se muitas pessoas derem "Resposta vazia" ou erro logo no início, o n8n provavelmente tem um limite de execuções simultâneas menor que esse número — cada chamada já tenta de novo automaticamente (3x), mas reduzir o "Máx. simultâneos" costuma resolver de vez.</div>
       <div class="actions">
         <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -330,6 +345,12 @@ const PRESETS = [
     criterio: ""
   }
 ];
+
+const AMBIENTES_ZENTA = {
+  prod: 'https://api.zenta.to',
+  stage: 'https://api-stg.zenta.to',
+  homolog: 'https://api-hml.zenta.to'
+};
 
 let timerInterval = null;
 let lastResult = null;
@@ -468,15 +489,30 @@ function exportPDF() {
   setTimeout(() => win.print(), 400);
 }
 
+async function fetchJSONComRetry(url, options, tentativas = 3, delayMs = 1200) {
+  let ultimoErro;
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      const res = await fetch(url, options);
+      const texto = await res.text();
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status + (texto ? ': ' + texto.slice(0, 200) : ''));
+      }
+      if (!texto) {
+        throw new Error('Resposta vazia do servidor (provável limite de execuções simultâneas no n8n)');
+      }
+      return JSON.parse(texto);
+    } catch (e) {
+      ultimoErro = e;
+      if (i < tentativas - 1) await new Promise(r => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw ultimoErro;
+}
+
 async function chamarWebhook(payload) {
   const webhookUrl = g('webhook_url').value.trim();
-  const res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  if (!res.ok) {
-    let detalhe = res.statusText;
-    try { const j = await res.json(); detalhe = j.message || j.error || detalhe; } catch(e) {}
-    throw new Error('HTTP ' + res.status + ': ' + detalhe);
-  }
-  return res.json();
+  return fetchJSONComRetry(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 }
 
 function pararUI(erro) {
@@ -573,7 +609,8 @@ async function iniciarTeste() {
   setStatus('running', 'Teste em andamento — turno 1...');
   startTimer();
 
-  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao };
+  const ambiente = g('ambiente_zenta').value;
+  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
   if (hostToken) config.host_token = hostToken;
   if (subSlug) config.sub_slug = subSlug;
   if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
@@ -801,7 +838,8 @@ async function runPersonConversation(person, cardEl) {
   const maxTurnosRaw = g('max_turnos').value.trim();
   const saudacao = g('saudacao').value.trim();
 
-  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao };
+  const ambiente = g('ambiente_zenta').value;
+  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
   if (hostToken) config.host_token = hostToken;
   if (subSlug) config.sub_slug = subSlug;
   if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
@@ -812,9 +850,7 @@ async function runPersonConversation(person, cardEl) {
   while (!loteAbortado) {
     let data;
     try {
-      const res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      data = await res.json();
+      data = await fetchJSONComRetry(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     } catch (e) {
       setLoteCardStatus(cardEl, 'err', 'Erro: ' + e.message);
       return { pessoa: person.nome, resultado: 'ERRO' };
