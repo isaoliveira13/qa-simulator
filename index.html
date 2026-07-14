@@ -42,6 +42,17 @@
   .env-picker select { font-family: inherit; font-size: 13px; font-weight: 500; color: var(--accent-text); background: var(--accent-bg); border: 1px solid var(--border-strong); border-radius: 20px; padding: 6px 14px; cursor: pointer; outline: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
   .env-picker select:hover { border-color: var(--accent); box-shadow: 0 6px 14px rgba(99,102,241,.18); transform: translateY(-1px); }
   .env-picker select:focus { border-color: var(--accent); }
+  .mode-switch-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .mode-switch-label { font-size: 13px; font-weight: 500; color: var(--text-muted); transition: color .15s; }
+  .mode-switch-label.active { color: var(--accent-text); }
+  .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider { position: absolute; inset: 0; cursor: pointer; background: var(--border-strong); border-radius: 24px; transition: background .2s; }
+  .switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  .lote-card-footer { display: flex; justify-content: flex-end; }
+  .lote-pdf-btn { font-size: 11px; padding: 5px 10px; display: none; }
   .main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1.5rem; }
   .section-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 14px; transition: transform .2s ease, box-shadow .2s ease; }
@@ -56,16 +67,6 @@
   .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-  .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .preset-btn { font-size: 12px; font-family: inherit; padding: 5px 14px; border-radius: 20px; cursor: pointer; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-secondary); transition: background .15s, color .15s, border-color .15s, box-shadow .2s; }
-  .preset-btn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent); box-shadow: 0 6px 14px rgba(99,102,241,.18); animation: tab-float .45s ease; }
-  .preset-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-  @keyframes tab-float {
-    0% { transform: translateY(0) rotate(0deg); }
-    30% { transform: translateY(-5px) rotate(-3deg); }
-    60% { transform: translateY(-5px) rotate(3deg); }
-    100% { transform: translateY(-3px) rotate(0deg); }
-  }
   @keyframes fade-slide-up {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
@@ -121,6 +122,16 @@
   .result-area { display: none; flex-direction: column; gap: 16px; }
   .lote-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .lote-num { width: 64px; font-family: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+  .lote-num:disabled { opacity: .55; cursor: not-allowed; }
+  .lote-pessoas-group { background: var(--bg); border: 1px dashed var(--border-strong); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .lote-pessoas-group-label { font-size: 11px; font-weight: 600; color: var(--accent-text); text-transform: uppercase; letter-spacing: 0.06em; }
+  .lote-connector { text-align: center; font-size: 11px; color: var(--accent-text); font-weight: 500; }
+  .lote-pessoas-group .field textarea { background: var(--surface); }
+  @keyframes lote-pessoas-flash {
+    0% { box-shadow: 0 0 0 0 rgba(99,102,241,.5); border-color: var(--accent); }
+    100% { box-shadow: 0 0 0 8px rgba(99,102,241,0); border-color: var(--border); }
+  }
+  #lote_pessoas.flash { animation: lote-pessoas-flash .9s ease-out; }
   .lote-num-label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
   .lote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .lote-progresso { font-size: 12px; color: var(--text-muted); }
@@ -175,13 +186,6 @@
 <div class="main">
 
   <div>
-    <div class="section-label">Cenários salvos</div>
-    <div class="preset-row" id="preset-row"></div>
-  </div>
-
-  <hr />
-
-  <div>
     <div class="section-label">Avatar</div>
     <div class="card">
       <div class="grid3">
@@ -205,6 +209,19 @@
       </div>
     </div>
   </div>
+
+  <hr />
+
+  <div class="mode-switch-row">
+    <span class="mode-switch-label active" id="label-modo-unico">Teste único</span>
+    <label class="switch">
+      <input type="checkbox" id="modo_lote_toggle" onchange="alternarModoLote()" />
+      <span class="slider"></span>
+    </label>
+    <span class="mode-switch-label" id="label-modo-lote">Teste em lote</span>
+  </div>
+
+  <div id="modo-unico" style="display:flex; flex-direction:column; gap:1.5rem;">
 
   <div>
     <div class="section-label">Teste</div>
@@ -255,7 +272,9 @@
     </div>
   </div>
 
-  <hr />
+  </div>
+
+  <div id="modo-lote" style="display:none; flex-direction:column; gap:1.5rem;">
 
   <div>
     <div class="section-label">Teste em lote — várias pessoas, mesmo avatar, ao mesmo tempo</div>
@@ -268,17 +287,30 @@
         <label>Critério de sucesso do lote</label>
         <textarea id="lote_criterio" rows="2"></textarea>
       </div>
-      <div class="field">
-        <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
-        <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG"></textarea>
-        <div class="hint" style="margin-top:-4px">Cada pessoa fica em uma única linha, com rolagem horizontal — fica mais fácil acompanhar coluna por coluna.</div>
+      <div class="lote-pessoas-group">
+        <div class="lote-pessoas-group-label">Pessoas do lote</div>
+        <div class="lote-controls">
+          <span class="lote-num-label">Gerar <input type="number" id="lote_qtd_gerar" class="lote-num" value="3" min="1" max="50" oninput="sincronizarMaxSimultaneos()" /> pessoas fictícias</span>
+          <button class="btn-secondary" onclick="gerarPessoasFicticias()">Gerar e adicionar</button>
+        </div>
+        <div class="lote-controls">
+          <span class="lote-num-label">
+            Máx. simultâneos = qtd. gerada
+            <label class="switch">
+              <input type="checkbox" id="lote_max_igual_toggle" checked onchange="alternarMaxIgualGerado()" />
+              <span class="slider"></span>
+            </label>
+          </span>
+          <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="3" min="1" max="30" disabled /></span>
+        </div>
+        <div class="hint" style="margin-top:-8px">Com "Máx. simultâneos = qtd. gerada" ativado, o máximo de simultâneos acompanha automaticamente o número de pessoas geradas; desative para definir um valor independente. Cada chamada já tenta de novo automaticamente (3x) em caso de falha transitória — se muitas pessoas derem erro ao mesmo tempo, reduzir o "Máx. simultâneos" pode ajudar.</div>
+        <div class="lote-connector">↓ gera e adiciona na lista abaixo ↓</div>
+        <div class="field">
+          <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
+          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG"></textarea>
+          <div class="hint" style="margin-top:-4px">Cada pessoa fica em uma única linha, com rolagem horizontal — fica mais fácil acompanhar coluna por coluna. Pode ser gerada automaticamente acima ou digitada manualmente aqui.</div>
+        </div>
       </div>
-      <div class="lote-controls">
-        <span class="lote-num-label">Gerar <input type="number" id="lote_qtd_gerar" class="lote-num" value="10" min="1" max="50" /> pessoas fictícias</span>
-        <button class="btn-secondary" onclick="gerarPessoasFicticias()">Gerar e adicionar</button>
-        <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="10" min="1" max="30" /></span>
-      </div>
-      <div class="hint" style="margin-top:-4px">Cada chamada já tenta de novo automaticamente (3x) em caso de falha transitória. Se muitas pessoas derem erro ao mesmo tempo, reduzir o "Máx. simultâneos" pode ajudar.</div>
       <div class="actions">
         <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -300,26 +332,11 @@
     <div class="lote-grid" id="lote-grid"></div>
   </div>
 
+  </div>
+
 </div>
 
 <script>
-const PRESETS = [
-  {
-    label: "Isabella",
-    host_slug: "isabella", sub_slug: "", max_turnos: 20,
-    saudacao: "oii",
-    cenario: "",
-    criterio: ""
-  },
-  {
-    label: "Isa",
-    host_slug: "isa", sub_slug: "", max_turnos: 20,
-    saudacao: "oii",
-    cenario: "",
-    criterio: ""
-  }
-];
-
 const AMBIENTES_ZENTA = {
   prod: 'https://api.zenta.to',
   stage: 'https://api-stg.zenta.to',
@@ -338,6 +355,14 @@ let secsElapsed = 0;
 let encerrarSolicitado = false;
 
 function g(id) { return document.getElementById(id); }
+
+function alternarModoLote() {
+  const ativo = g('modo_lote_toggle').checked;
+  g('modo-unico').style.display = ativo ? 'none' : 'flex';
+  g('modo-lote').style.display = ativo ? 'flex' : 'none';
+  g('label-modo-unico').classList.toggle('active', !ativo);
+  g('label-modo-lote').classList.toggle('active', ativo);
+}
 
 function setStatus(type, msg) {
   g('status-box').className = 'status-box status-' + type;
@@ -360,17 +385,6 @@ function startTimer() {
 function stopTimer() {
   clearInterval(timerInterval);
   g('timer').style.display = 'none';
-}
-
-function applyPreset(i) {
-  const p = PRESETS[i];
-  g('host_slug').value = p.host_slug;
-  g('sub_slug').value = p.sub_slug;
-  g('max_turnos').value = p.max_turnos;
-  g('saudacao').value = p.saudacao;
-  g('cenario').value = p.cenario;
-  g('criterio').value = p.criterio;
-  document.querySelectorAll('.preset-btn').forEach((b, j) => b.classList.toggle('active', j === i));
 }
 
 function turnBlockHTML(t) {
@@ -406,13 +420,10 @@ function renderMetricsFinal(data, sucesso, manual) {
     '<div class="metric"><div class="metric-label">Tempo</div><div class="metric-val">' + (data.tempo_segundos||0) + '<span style="font-size:14px;font-weight:400;color:var(--text-muted)">s</span></div></div>';
 }
 
-function exportPDF() {
-  if (!lastResult) return;
-  const d = lastResult;
-  const cenario = g('cenario').value;
-  const criterio = g('criterio').value;
-
-  const win = window.open('', '_blank');
+// Template de PDF compartilhado (teste único e teste em lote) — usa a mesma
+// paleta indigo/lavanda da plataforma (não cores genéricas azul/verde/laranja).
+function construirRelatorioHTML({ titulo, d, cenario, criterio }) {
+  const corResultado = d.resultado === 'SUCESSO' ? '#059669' : (d.resultado === 'ENCERRADO' ? '#4f46e5' : '#dc2626');
   const rows = (d.transcricao || []).map(t =>
     '<div class="turn-block">' +
     '<div class="turn-header">Turno ' + t.turno + '</div>' +
@@ -421,36 +432,32 @@ function exportPDF() {
     '</div>'
   ).join('');
 
-  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-  <title>Relatório QA — ISA</title>
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>${titulo}</title>
   <style>
-    body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a18; max-width: 780px; margin: 0 auto; padding: 2rem; }
-    h1 { font-size: 20px; margin-bottom: 4px; }
-    .subtitle { color: #6b6b67; font-size: 13px; margin-bottom: 1.5rem; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #201c35; background: #f6f6fb; max-width: 780px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 20px; margin-bottom: 4px; color: #201c35; }
+    .subtitle { color: #6b6884; font-size: 13px; margin-bottom: 1.5rem; }
     .meta-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 1.5rem; }
-    .meta-box { border: 1px solid #e2e2de; border-radius: 8px; padding: 10px 14px; }
-    .meta-label { font-size: 10px; color: #a0a09b; text-transform: uppercase; letter-spacing: 0.06em; }
-    .meta-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
-    .meta-val.ok { color: #15803d; }
-    .meta-val.err { color: #dc2626; }
-    .meta-val.neutral { color: #1d4ed8; }
-    .info-box { background: #f5f5f3; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 12px; line-height: 1.6; }
-    .info-box strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #a0a09b; margin-bottom: 4px; }
-    h2 { font-size: 13px; font-weight: 600; color: #6b6b67; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; border-top: 1px solid #e2e2de; padding-top: 1rem; }
-    .turn-block { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f0f0ee; }
-    .turn-block:last-child { border-bottom: none; }
-    .turn-header { font-size: 10px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
-    .sim-line { color: #92400e; margin-bottom: 3px; }
-    .avatar-line { color: #166534; }
-    .footer { margin-top: 2rem; font-size: 11px; color: #a0a09b; border-top: 1px solid #e2e2de; padding-top: 1rem; }
-    @media print { body { padding: 1rem; } }
+    .meta-box { background: #ffffff; border: 1px solid #e6e6f2; border-radius: 10px; padding: 10px 14px; }
+    .meta-label { font-size: 10px; color: #9c99b4; text-transform: uppercase; letter-spacing: 0.06em; }
+    .meta-val { font-size: 18px; font-weight: 700; margin-top: 2px; color: ${corResultado}; }
+    .info-box { background: #ffffff; border: 1px solid #e6e6f2; border-radius: 10px; padding: 12px 16px; margin-bottom: 1rem; font-size: 12px; line-height: 1.6; }
+    .info-box strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #9c99b4; margin-bottom: 4px; }
+    h2 { font-size: 13px; font-weight: 600; color: #6b6884; text-transform: uppercase; letter-spacing: 0.06em; margin: 1.5rem 0 12px; border-top: 1px solid #e6e6f2; padding-top: 1rem; }
+    .turn-block { background: #ffffff; border: 1px solid #e6e6f2; border-radius: 10px; margin-bottom: 10px; padding: 10px 14px; }
+    .turn-header { font-size: 10px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+    .sim-line { color: #4f46e5; margin-bottom: 3px; }
+    .avatar-line { color: #059669; }
+    .footer { margin-top: 2rem; font-size: 11px; color: #9c99b4; border-top: 1px solid #e6e6f2; padding-top: 1rem; }
+    @media print { body { padding: 1rem; background: white; } .meta-box, .info-box, .turn-block { border-color: #ddd; } }
   </style></head><body>
-  <h1>Relatório de QA — ISA</h1>
+  <h1>${titulo}</h1>
   <div class="subtitle">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
   <div class="meta-grid">
-    <div class="meta-box"><div class="meta-label">Resultado</div><div class="meta-val ${d.resultado === 'SUCESSO' ? 'ok' : (d.resultado === 'ENCERRADO' ? 'neutral' : 'err')}">${d.resultado || '—'}</div></div>
-    <div class="meta-box"><div class="meta-label">Turnos</div><div class="meta-val">${d.total_turnos || 0} / ${d.max_turnos || '—'}</div></div>
-    <div class="meta-box"><div class="meta-label">Tempo</div><div class="meta-val">${d.tempo_segundos || 0}s</div></div>
+    <div class="meta-box"><div class="meta-label">Resultado</div><div class="meta-val">${d.resultado || '—'}</div></div>
+    <div class="meta-box"><div class="meta-label">Turnos</div><div class="meta-val" style="color:#201c35">${d.total_turnos || 0} / ${d.max_turnos || '—'}</div></div>
+    <div class="meta-box"><div class="meta-label">Tempo</div><div class="meta-val" style="color:#201c35">${d.tempo_segundos || 0}s</div></div>
   </div>
   <div class="info-box"><strong>Cenário</strong>${cenario}</div>
   <div class="info-box"><strong>Critério de sucesso</strong>${criterio}</div>
@@ -458,9 +465,24 @@ function exportPDF() {
   <h2>Transcrição da conversa</h2>
   ${rows}
   <div class="footer">ISA — QA Conversacional · Zenta · conversation_id: ${d.conversation_id || '—'}</div>
-  </body></html>`);
+  </body></html>`;
+}
+
+function abrirRelatorioPDF(opcoes) {
+  const win = window.open('', '_blank');
+  win.document.write(construirRelatorioHTML(opcoes));
   win.document.close();
   setTimeout(() => win.print(), 400);
+}
+
+function exportPDF() {
+  if (!lastResult) return;
+  abrirRelatorioPDF({
+    titulo: 'Relatório de QA — ISA',
+    d: lastResult,
+    cenario: g('cenario').value,
+    criterio: g('criterio').value
+  });
 }
 
 async function fetchJSONComRetry(url, options, tentativas = 3, delayMs = 1200) {
@@ -660,17 +682,6 @@ function finalizarTeste(data) {
   g('result-area').style.display = 'flex';
 }
 
-(function init() {
-  const row = g('preset-row');
-  PRESETS.forEach((p, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'preset-btn';
-    btn.textContent = p.label;
-    btn.onclick = () => applyPreset(i);
-    row.appendChild(btn);
-  });
-})();
-
 // ---------- Teste em lote (várias pessoas, mesmo avatar, em paralelo) ----------
 
 const NOMES_M = ['Carlos','João','Pedro','Lucas','Rafael','Bruno','Gustavo','Marcelo','Thiago','André','Felipe','Rodrigo','Diego','Eduardo','Vinícius'];
@@ -744,6 +755,26 @@ function gerarPessoasFicticias() {
   }
   const atual = g('lote_pessoas').value.trim();
   g('lote_pessoas').value = atual ? atual + '\n' + linhas.join('\n') : linhas.join('\n');
+
+  // Brilho rápido no campo, confirmando visualmente que as pessoas caíram ali.
+  const campo = g('lote_pessoas');
+  campo.classList.remove('flash');
+  void campo.offsetWidth; // força reinício da animação em cliques seguidos
+  campo.classList.add('flash');
+}
+
+// Mantém "Máx. simultâneos" igual ao valor de "Gerar X pessoas fictícias"
+// enquanto o toggle estiver ativado.
+function sincronizarMaxSimultaneos() {
+  if (g('lote_max_igual_toggle').checked) {
+    g('lote_max_simultaneos').value = g('lote_qtd_gerar').value;
+  }
+}
+
+function alternarMaxIgualGerado() {
+  const igual = g('lote_max_igual_toggle').checked;
+  g('lote_max_simultaneos').disabled = igual;
+  if (igual) sincronizarMaxSimultaneos();
 }
 
 function parsePessoas() {
@@ -775,7 +806,19 @@ function criarLoteCard(pessoa) {
       '<span class="lote-status-pill" data-status>Na fila</span>' +
     '</div>' +
     '<div class="lote-card-meta">' + escapeHTML(pessoa.cidade) + ' · ' + escapeHTML(pessoa.genero) + '</div>' +
-    '<div class="lote-card-transcript" data-transcript></div>';
+    '<div class="lote-card-transcript" data-transcript></div>' +
+    '<div class="lote-card-footer">' +
+      '<button type="button" class="btn-secondary lote-pdf-btn" data-pdf-btn>Exportar PDF</button>' +
+    '</div>';
+  el.querySelector('[data-pdf-btn]').addEventListener('click', () => {
+    if (!el._dadosFinal) return;
+    abrirRelatorioPDF({
+      titulo: 'Relatório de QA — ' + pessoa.nome,
+      d: el._dadosFinal,
+      cenario: preencherTemplate(g('lote_template').value, pessoa),
+      criterio: g('lote_criterio').value
+    });
+  });
   return el;
 }
 
@@ -842,6 +885,8 @@ async function runPersonConversation(person, cardEl) {
     const sucesso = data.resultado === 'SUCESSO';
     if (data.transcricao) renderLoteTranscriptCompleto(cardEl, data.transcricao);
     setLoteCardStatus(cardEl, sucesso ? 'ok' : 'err', (data.resultado || '—') + ' · ' + (data.total_turnos || 0) + ' turnos');
+    cardEl._dadosFinal = data;
+    cardEl.querySelector('[data-pdf-btn]').style.display = 'inline-flex';
     return { pessoa: person.nome, resultado: data.resultado, turnos: data.total_turnos };
   }
 
