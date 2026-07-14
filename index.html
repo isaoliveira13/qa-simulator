@@ -821,7 +821,7 @@ async function runPersonConversation(person, cardEl) {
   if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
 
   setLoteCardStatus(cardEl, 'running', 'Turno 1...');
-  let payload = { config, cenario, criterio_sucesso: criterio };
+  let payload = { config, cenario, criterio_sucesso: criterio, dados_fixos: person };
 
   while (!loteAbortado) {
     let data;
