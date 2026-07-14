@@ -132,6 +132,19 @@
     100% { box-shadow: 0 0 0 8px rgba(99,102,241,0); border-color: var(--border); }
   }
   #lote_pessoas.flash { animation: lote-pessoas-flash .9s ease-out; }
+  .lote-individual-lista { display: flex; flex-direction: column; gap: 8px; }
+  .lote-individual-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
+  .lote-individual-nome { font-size: 13px; font-weight: 500; flex: 1; }
+  .lote-individual-status { font-size: 11px; padding: 2px 10px; border-radius: 12px; background: var(--surface); color: var(--text-muted); white-space: nowrap; }
+  .lote-individual-status.configurado { background: var(--success-bg); color: var(--success-text); }
+  dialog#modal-cenario-individual { border: none; border-radius: 14px; padding: 1.5rem; width: min(560px, 92vw); background: var(--surface); color: var(--text); box-shadow: 0 20px 50px rgba(32,28,53,.25); flex-direction: column; gap: 14px; }
+  dialog#modal-cenario-individual:not([open]) { display: none; }
+  dialog#modal-cenario-individual[open] { display: flex; }
+  dialog#modal-cenario-individual::backdrop { background: rgba(32,28,53,.45); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h3 { font-size: 15px; font-weight: 600; }
+  .modal-close { background: none; border: none; font-size: 20px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: background .15s, color .15s; }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
   .lote-num-label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
   .lote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .lote-progresso { font-size: 12px; color: var(--text-muted); }
@@ -279,14 +292,6 @@
   <div>
     <div class="section-label">Teste em lote — várias pessoas, mesmo avatar, ao mesmo tempo</div>
     <div class="card">
-      <div class="field">
-        <label>Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
-        <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
-      </div>
-      <div class="field">
-        <label>Critério de sucesso do lote</label>
-        <textarea id="lote_criterio" rows="2"></textarea>
-      </div>
       <div class="lote-pessoas-group">
         <div class="lote-pessoas-group-label">Pessoas do lote</div>
         <div class="lote-controls">
@@ -307,10 +312,38 @@
         <div class="lote-connector">↓ gera e adiciona na lista abaixo ↓</div>
         <div class="field">
           <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
-          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG"></textarea>
+          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG" oninput="atualizarListaCenariosIndividuais()"></textarea>
           <div class="hint" style="margin-top:-4px">Cada pessoa fica em uma única linha, com rolagem horizontal — fica mais fácil acompanhar coluna por coluna. Pode ser gerada automaticamente acima ou digitada manualmente aqui.</div>
         </div>
       </div>
+
+      <div class="lote-controls">
+        <span class="lote-num-label">
+          Cenários diferentes por pessoa
+          <label class="switch">
+            <input type="checkbox" id="lote_cenarios_individuais_toggle" onchange="alternarCenariosIndividuais()" />
+            <span class="slider"></span>
+          </label>
+        </span>
+      </div>
+      <div class="hint" style="margin-top:-8px">Desativado: todas as pessoas usam o mesmo Template e Critério abaixo. Ativado: você configura um cenário e critério de sucesso específico para cada pessoa — quem não for configurado individualmente usa o Template como padrão.</div>
+
+      <div id="lote-cenario-compartilhado" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="field">
+          <label>Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
+          <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
+        </div>
+        <div class="field">
+          <label>Critério de sucesso do lote</label>
+          <textarea id="lote_criterio" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div id="lote-cenarios-individuais" style="display:none; flex-direction:column; gap:8px;">
+        <div id="lote-cenarios-individuais-lista" class="lote-individual-lista"></div>
+        <div class="hint" style="margin-top:-4px">A associação é pela ordem da lista de "Pessoas" — evite reordenar ou remover linhas já configuradas.</div>
+      </div>
+
       <div class="actions">
         <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -335,6 +368,25 @@
   </div>
 
 </div>
+
+<dialog id="modal-cenario-individual">
+  <div class="modal-header">
+    <h3 id="modal-cenario-titulo">Cenário individual</h3>
+    <button type="button" class="modal-close" onclick="fecharModalCenario()" aria-label="Fechar">&times;</button>
+  </div>
+  <div class="field">
+    <label>Cenário desta pessoa</label>
+    <textarea id="modal_cenario_texto" rows="5"></textarea>
+  </div>
+  <div class="field">
+    <label>Critério de sucesso desta pessoa</label>
+    <textarea id="modal_criterio_texto" rows="3"></textarea>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn-run" onclick="salvarCenarioIndividual()">Salvar</button>
+    <button type="button" class="btn-secondary" onclick="fecharModalCenario()">Cancelar</button>
+  </div>
+</dialog>
 
 <script>
 const AMBIENTES_ZENTA = {
@@ -362,6 +414,64 @@ function alternarModoLote() {
   g('modo-lote').style.display = ativo ? 'flex' : 'none';
   g('label-modo-unico').classList.toggle('active', !ativo);
   g('label-modo-lote').classList.toggle('active', ativo);
+}
+
+// ---------- Cenários individuais por pessoa (teste em lote) ----------
+// Chave: índice da pessoa na lista de "Pessoas" (mesma ordem retornada por parsePessoas()).
+let cenariosIndividuais = {};
+let indiceModalAtual = null;
+
+function alternarCenariosIndividuais() {
+  const ativo = g('lote_cenarios_individuais_toggle').checked;
+  g('lote-cenario-compartilhado').style.display = ativo ? 'none' : 'flex';
+  g('lote-cenarios-individuais').style.display = ativo ? 'flex' : 'none';
+  if (ativo) atualizarListaCenariosIndividuais();
+}
+
+function atualizarListaCenariosIndividuais() {
+  if (!g('lote_cenarios_individuais_toggle').checked) return;
+  const pessoas = parsePessoas();
+  const lista = g('lote-cenarios-individuais-lista');
+  lista.innerHTML = '';
+  if (!pessoas.length) {
+    lista.innerHTML = '<div class="hint">Adicione pessoas na lista acima para configurar o cenário de cada uma.</div>';
+    return;
+  }
+  pessoas.forEach((p, i) => {
+    const configurado = !!(cenariosIndividuais[i] && cenariosIndividuais[i].cenario);
+    const row = document.createElement('div');
+    row.className = 'lote-individual-row';
+    row.innerHTML =
+      '<span class="lote-individual-nome">' + escapeHTML(p.nome) + '</span>' +
+      '<span class="lote-individual-status' + (configurado ? ' configurado' : '') + '">' + (configurado ? 'Configurado' : 'Padrão (template)') + '</span>' +
+      '<button type="button" class="btn-secondary" data-editar>' + (configurado ? 'Editar cenário' : 'Configurar cenário') + '</button>';
+    row.querySelector('[data-editar]').addEventListener('click', () => abrirModalCenario(i, p));
+    lista.appendChild(row);
+  });
+}
+
+function abrirModalCenario(indice, pessoa) {
+  indiceModalAtual = indice;
+  g('modal-cenario-titulo').textContent = 'Cenário — ' + pessoa.nome;
+  const existente = cenariosIndividuais[indice];
+  g('modal_cenario_texto').value = existente ? existente.cenario : preencherTemplate(g('lote_template').value, pessoa);
+  g('modal_criterio_texto').value = existente ? existente.criterio : g('lote_criterio').value;
+  g('modal-cenario-individual').showModal();
+}
+
+function fecharModalCenario() {
+  g('modal-cenario-individual').close();
+  indiceModalAtual = null;
+}
+
+function salvarCenarioIndividual() {
+  if (indiceModalAtual === null) return;
+  cenariosIndividuais[indiceModalAtual] = {
+    cenario: g('modal_cenario_texto').value.trim(),
+    criterio: g('modal_criterio_texto').value.trim()
+  };
+  fecharModalCenario();
+  atualizarListaCenariosIndividuais();
 }
 
 function setStatus(type, msg) {
@@ -761,6 +871,8 @@ function gerarPessoasFicticias() {
   campo.classList.remove('flash');
   void campo.offsetWidth; // força reinício da animação em cliques seguidos
   campo.classList.add('flash');
+
+  atualizarListaCenariosIndividuais();
 }
 
 // Mantém "Máx. simultâneos" igual ao valor de "Gerar X pessoas fictícias"
@@ -815,8 +927,8 @@ function criarLoteCard(pessoa) {
     abrirRelatorioPDF({
       titulo: 'Relatório de QA — ' + pessoa.nome,
       d: el._dadosFinal,
-      cenario: preencherTemplate(g('lote_template').value, pessoa),
-      criterio: g('lote_criterio').value
+      cenario: el._cenarioEfetivo || preencherTemplate(g('lote_template').value, pessoa),
+      criterio: el._criterioEfetivo || g('lote_criterio').value
     });
   });
   return el;
@@ -850,9 +962,11 @@ function renderLoteTranscriptCompleto(el, transcricao) {
   box.scrollTop = box.scrollHeight;
 }
 
-async function runPersonConversation(person, cardEl) {
-  const cenario = preencherTemplate(g('lote_template').value, person);
-  const criterio = g('lote_criterio').value.trim();
+async function runPersonConversation(person, cardEl, overrides) {
+  const cenario = (overrides && overrides.cenario) ? overrides.cenario : preencherTemplate(g('lote_template').value, person);
+  const criterio = (overrides && overrides.criterio) ? overrides.criterio : g('lote_criterio').value.trim();
+  cardEl._cenarioEfetivo = cenario;
+  cardEl._criterioEfetivo = criterio;
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
   const maxTurnosRaw = g('max_turnos').value.trim();
@@ -918,12 +1032,14 @@ async function iniciarLote() {
   atualizarProgressoLote(concluidos, pessoas.length);
 
   const maxSimult = Math.max(1, parseInt(g('lote_max_simultaneos').value) || 10);
+  const individual = g('lote_cenarios_individuais_toggle').checked;
   let proximo = 0;
 
   async function worker() {
     while (proximo < pessoas.length && !loteAbortado) {
       const i = proximo++;
-      await runPersonConversation(pessoas[i], cards[i]);
+      const overrides = individual ? cenariosIndividuais[i] : null;
+      await runPersonConversation(pessoas[i], cards[i], overrides);
       concluidos++;
       atualizarProgressoLote(concluidos, pessoas.length);
     }
