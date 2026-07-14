@@ -199,17 +199,6 @@
         </div>
       </div>
       <div class="hint" style="margin-top:-8px">Deixe "Máx. turnos" em branco para não limitar por turno — a conversa só encerra quando o avatar concluir ou travar. Isso evita marcar como FALHA um teste que só precisava de mais turnos.</div>
-      <div class="grid2">
-        <div class="field">
-          <label>Host token <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <input type="password" id="host_token" value="" autocomplete="off" />
-        </div>
-        <div class="field">
-          <label>Host ID</label>
-          <input type="text" id="host_id" value="00000000-0000-0000-0000-000000000000" />
-        </div>
-      </div>
-      <div class="hint" style="margin-top:-8px">Deixe "Host token" em branco se o n8n tiver a variável ZENTA_DOMAIN_TOKEN configurada — o token do host é resolvido automaticamente a partir do Host slug.</div>
       <div class="field">
         <label>Saudação inicial</label>
         <input type="text" id="saudacao" value="oii" />
@@ -227,17 +216,6 @@
       <div class="field">
         <label>Critério de sucesso — o que define que o fluxo funcionou corretamente</label>
         <textarea id="criterio" rows="2"></textarea>
-      </div>
-    </div>
-  </div>
-
-  <div>
-    <div class="section-label">Configuração</div>
-    <div class="card">
-      <div class="field">
-        <label>URL do webhook PAI (n8n)</label>
-        <input type="text" id="webhook_url" value="https://n8n-service.zenta.to/webhook/qa-conversacional-pai" />
-        <div class="hint">O workflow PAI precisa estar ativo no n8n para receber as chamadas. Cada turno da conversa é enviado como uma chamada curta e independente — isso evita erros de timeout em testes longos e permite pausar a qualquer momento.</div>
       </div>
     </div>
   </div>
@@ -288,7 +266,7 @@
       </div>
       <div class="field">
         <label>Critério de sucesso do lote</label>
-        <textarea id="lote_criterio" rows="2">O avatar informar que entrará em contato via WhatsApp ou mensagem similar de encerramento positivo da candidatura.</textarea>
+        <textarea id="lote_criterio" rows="2"></textarea>
       </div>
       <div class="field">
         <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
@@ -300,7 +278,7 @@
         <button class="btn-secondary" onclick="gerarPessoasFicticias()">Gerar e adicionar</button>
         <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="10" min="1" max="30" /></span>
       </div>
-      <div class="hint" style="margin-top:-4px">Se muitas pessoas derem "Resposta vazia" ou erro logo no início, o n8n provavelmente tem um limite de execuções simultâneas menor que esse número — cada chamada já tenta de novo automaticamente (3x), mas reduzir o "Máx. simultâneos" costuma resolver de vez.</div>
+      <div class="hint" style="margin-top:-4px">Cada chamada já tenta de novo automaticamente (3x) em caso de falha transitória. Se muitas pessoas derem erro ao mesmo tempo, reduzir o "Máx. simultâneos" pode ajudar.</div>
       <div class="actions">
         <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -329,8 +307,6 @@ const PRESETS = [
   {
     label: "Isabella",
     host_slug: "isabella", sub_slug: "", max_turnos: 20,
-    host_token: "",
-    host_id: "00000000-0000-0000-0000-000000000000",
     saudacao: "oii",
     cenario: "",
     criterio: ""
@@ -338,8 +314,6 @@ const PRESETS = [
   {
     label: "Isa",
     host_slug: "isa", sub_slug: "", max_turnos: 20,
-    host_token: "",
-    host_id: "00000000-0000-0000-0000-000000000000",
     saudacao: "oii",
     cenario: "",
     criterio: ""
@@ -351,6 +325,8 @@ const AMBIENTES_ZENTA = {
   stage: 'https://api-stg.zenta.to',
   homolog: 'https://api-hml.zenta.to'
 };
+
+const WEBHOOK_URL_PADRAO = '/api/qa-conversacional-pai';
 
 let timerInterval = null;
 let lastResult = null;
@@ -391,8 +367,6 @@ function applyPreset(i) {
   g('host_slug').value = p.host_slug;
   g('sub_slug').value = p.sub_slug;
   g('max_turnos').value = p.max_turnos;
-  g('host_token').value = p.host_token;
-  g('host_id').value = p.host_id;
   g('saudacao').value = p.saudacao;
   g('cenario').value = p.cenario;
   g('criterio').value = p.criterio;
@@ -499,7 +473,7 @@ async function fetchJSONComRetry(url, options, tentativas = 3, delayMs = 1200) {
         throw new Error('HTTP ' + res.status + (texto ? ': ' + texto.slice(0, 200) : ''));
       }
       if (!texto) {
-        throw new Error('Resposta vazia do servidor (provável limite de execuções simultâneas no n8n)');
+        throw new Error('Resposta vazia do servidor (falha transitória — nova tentativa em andamento)');
       }
       return JSON.parse(texto);
     } catch (e) {
@@ -511,8 +485,7 @@ async function fetchJSONComRetry(url, options, tentativas = 3, delayMs = 1200) {
 }
 
 async function chamarWebhook(payload) {
-  const webhookUrl = g('webhook_url').value.trim();
-  return fetchJSONComRetry(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  return fetchJSONComRetry(WEBHOOK_URL_PADRAO, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 }
 
 function pararUI(erro) {
@@ -523,7 +496,7 @@ function pararUI(erro) {
   g('btn-run').disabled = false;
   g('btn-pause').style.display = 'none';
   g('btn-encerrar').style.display = 'none';
-  if (erro) setStatus('err', 'Erro ao chamar o webhook: ' + erro.message + '. Verifique se o PAI está ativo no n8n e se a URL está correta.');
+  if (erro) setStatus('err', 'Erro ao chamar o endpoint: ' + erro.message + '. Verifique se o deploy na Vercel está ativo e se as variáveis de ambiente estão configuradas.');
 }
 
 function setPauseButtonUI(paused) {
@@ -575,9 +548,6 @@ async function encerrarTeste() {
 }
 
 async function iniciarTeste() {
-  const webhookUrl = g('webhook_url').value.trim();
-  const hostToken = g('host_token').value.trim();
-  const hostId = g('host_id').value.trim();
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
   const maxTurnosRaw = g('max_turnos').value.trim();
@@ -585,7 +555,6 @@ async function iniciarTeste() {
   const cenario = g('cenario').value.trim();
   const criterio = g('criterio').value.trim();
 
-  if (!webhookUrl) { setStatus('err', 'Informe a URL do webhook PAI.'); return; }
   if (!cenario) { setStatus('err', 'Descreva o cenário do teste.'); return; }
   if (!criterio) { setStatus('err', 'Defina o critério de sucesso.'); return; }
 
@@ -610,8 +579,7 @@ async function iniciarTeste() {
   startTimer();
 
   const ambiente = g('ambiente_zenta').value;
-  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
-  if (hostToken) config.host_token = hostToken;
+  const config = { host_slug: hostSlug, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
   if (subSlug) config.sub_slug = subSlug;
   if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
 
@@ -830,17 +798,13 @@ function appendLoteTurn(el, turno) {
 async function runPersonConversation(person, cardEl) {
   const cenario = preencherTemplate(g('lote_template').value, person);
   const criterio = g('lote_criterio').value.trim();
-  const webhookUrl = g('webhook_url').value.trim();
-  const hostToken = g('host_token').value.trim();
-  const hostId = g('host_id').value.trim();
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
   const maxTurnosRaw = g('max_turnos').value.trim();
   const saudacao = g('saudacao').value.trim();
 
   const ambiente = g('ambiente_zenta').value;
-  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
-  if (hostToken) config.host_token = hostToken;
+  const config = { host_slug: hostSlug, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
   if (subSlug) config.sub_slug = subSlug;
   if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
 
@@ -850,7 +814,7 @@ async function runPersonConversation(person, cardEl) {
   while (!loteAbortado) {
     let data;
     try {
-      data = await fetchJSONComRetry(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      data = await fetchJSONComRetry(WEBHOOK_URL_PADRAO, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     } catch (e) {
       setLoteCardStatus(cardEl, 'err', 'Erro: ' + e.message);
       return { pessoa: person.nome, resultado: 'ERRO' };
@@ -880,12 +844,6 @@ async function iniciarLote() {
   const pessoas = parsePessoas();
   if (!pessoas.length) {
     g('lote-progresso').textContent = 'Adicione ao menos uma pessoa (manualmente ou gerando fictícias).';
-    return;
-  }
-
-  const webhookUrl = g('webhook_url').value.trim();
-  if (!webhookUrl) {
-    g('lote-progresso').textContent = 'Informe a URL do webhook PAI na seção Configuração.';
     return;
   }
 
