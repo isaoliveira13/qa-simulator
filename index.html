@@ -139,11 +139,11 @@
       <div class="grid3">
         <div class="field">
           <label>Host slug</label>
-          <input type="text" id="host_slug" value="us" />
+          <input type="text" id="host_slug" value="isabella" />
         </div>
         <div class="field">
           <label>Sub slug <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <input type="text" id="sub_slug" value="vagas" />
+          <input type="text" id="sub_slug" value="" />
         </div>
         <div class="field">
           <label>Máx. turnos <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
@@ -164,7 +164,7 @@
       <div class="hint" style="margin-top:-8px">Deixe "Host token" em branco se o n8n tiver a variável ZENTA_DOMAIN_TOKEN configurada — o token do host é resolvido automaticamente a partir do Host slug.</div>
       <div class="field">
         <label>Saudação inicial</label>
-        <input type="text" id="saudacao" value="Olá! Vi a vaga de QA Junior e tenho interesse em me candidatar." />
+        <input type="text" id="saudacao" value="oii" />
       </div>
     </div>
   </div>
@@ -174,11 +174,11 @@
     <div class="card">
       <div class="field">
         <label>Cenário — descreva quem é o candidato simulado e como ele se comporta</label>
-        <textarea id="cenario" rows="4">Você é Carlos Eduardo Mendes, 24 anos, de Belo Horizonte/MG. Tem interesse na vaga de QA Junior. É cooperativo: fornece todos os dados solicitados (nome, telefone, e-mail, cidade, estado, LinkedIn) sem hesitar. Seu objetivo é completar o processo de candidatura.</textarea>
+        <textarea id="cenario" rows="4"></textarea>
       </div>
       <div class="field">
         <label>Critério de sucesso — o que define que o fluxo funcionou corretamente</label>
-        <textarea id="criterio" rows="2">O avatar informar que entrará em contato via WhatsApp ou mensagem similar de encerramento positivo da candidatura.</textarea>
+        <textarea id="criterio" rows="2"></textarea>
       </div>
     </div>
   </div>
@@ -234,32 +234,22 @@
 <script>
 const PRESETS = [
   {
-    label: "QA Junior — ideal",
-    host_slug: "us", sub_slug: "vagas", max_turnos: 20,
-    saudacao: "Olá! Vi a vaga de QA Junior e tenho interesse em me candidatar.",
-    cenario: "Você é Carlos Eduardo Mendes, 24 anos, de Belo Horizonte/MG. Tem interesse na vaga de QA Junior. É cooperativo: fornece todos os dados solicitados (nome, telefone, e-mail, cidade, estado, LinkedIn) sem hesitar. Seu objetivo é completar o processo de candidatura.",
-    criterio: "O avatar informar que entrará em contato via WhatsApp ou mensagem similar de encerramento positivo da candidatura."
+    label: "Isabella",
+    host_slug: "isabella", sub_slug: "", max_turnos: 20,
+    host_token: "",
+    host_id: "00000000-0000-0000-0000-000000000000",
+    saudacao: "oii",
+    cenario: "",
+    criterio: ""
   },
   {
-    label: "QA Junior — resistente",
-    host_slug: "us", sub_slug: "vagas", max_turnos: 20,
-    saudacao: "Oi, vi a vaga de QA Junior. Quero saber mais antes de me candidatar.",
-    cenario: "Você é um candidato interessado na vaga de QA Junior, porém desconfiado e resistente. Quando o avatar pedir dados pessoais, reaja com evasivas: pergunte por que precisa, diga que prefere não informar por enquanto. Pode ceder após insistência, mas sempre com relutância.",
-    criterio: "O avatar conseguir contornar a resistência e encerrar com mensagem de contato via WhatsApp, OU demonstrar que não conseguiu avançar após múltiplas tentativas."
-  },
-  {
-    label: "Suporte ao cliente — ideal",
-    host_slug: "us", sub_slug: "vagas", max_turnos: 20,
-    saudacao: "Olá! Tenho interesse na vaga de Suporte ao Cliente.",
-    cenario: "Você é Ana Paula Rodrigues, 27 anos, de São Paulo/SP. Tem 2 anos de experiência em atendimento ao cliente. É comunicativa e paciente. Fornece todos os dados pedidos prontamente. Seu objetivo é completar a candidatura para Suporte ao Cliente.",
-    criterio: "O avatar informar que entrará em contato via WhatsApp ou mensagem similar de encerramento positivo da candidatura."
-  },
-  {
-    label: "Suporte ao cliente — sem experiência",
-    host_slug: "us", sub_slug: "vagas", max_turnos: 20,
-    saudacao: "Oi! Quero me candidatar para a vaga de Suporte ao Cliente.",
-    cenario: "Você é Lucas Ferreira, 20 anos, de Curitiba/PR. Não tem experiência formal em suporte, só estágios em administração. Quando perguntado sobre experiência, admite honestamente que não tem, mas enfatiza que aprende rápido e está motivado. Fornece dados normalmente.",
-    criterio: "O avatar informar que entrará em contato via WhatsApp mesmo sem experiência, OU informar educadamente que o perfil não se encaixa."
+    label: "Isa",
+    host_slug: "isa", sub_slug: "", max_turnos: 20,
+    host_token: "",
+    host_id: "00000000-0000-0000-0000-000000000000",
+    saudacao: "oii",
+    cenario: "",
+    criterio: ""
   }
 ];
 
@@ -302,6 +292,8 @@ function applyPreset(i) {
   g('host_slug').value = p.host_slug;
   g('sub_slug').value = p.sub_slug;
   g('max_turnos').value = p.max_turnos;
+  g('host_token').value = p.host_token;
+  g('host_id').value = p.host_id;
   g('saudacao').value = p.saudacao;
   g('cenario').value = p.cenario;
   g('criterio').value = p.criterio;
