@@ -210,7 +210,7 @@
     <div class="section-label">Teste</div>
     <div class="card">
       <div class="field">
-        <label>Cenário — descreva quem é o candidato simulado e como ele se comporta</label>
+        <label>Cenário — descreva quem é a pessoa simulada e como ela se comporta</label>
         <textarea id="cenario" rows="4"></textarea>
       </div>
       <div class="field">
@@ -262,7 +262,7 @@
     <div class="card">
       <div class="field">
         <label>Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
-        <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}. Responda com naturalidade e cooperação a tudo que for pedido, seu objetivo é completar o processo de candidatura.</textarea>
+        <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
       </div>
       <div class="field">
         <label>Critério de sucesso do lote</label>
@@ -785,13 +785,25 @@ function setLoteCardStatus(el, type, msg) {
   pill.className = 'lote-status-pill lote-status-' + type;
 }
 
-function appendLoteTurn(el, turno) {
-  const box = el.querySelector('[data-transcript]');
-  box.insertAdjacentHTML('beforeend',
-    '<div style="margin-bottom:8px">' +
+function loteTurnHTML(turno) {
+  return '<div style="margin-bottom:8px">' +
       '<div style="color:#ce9178">Sim: ' + escapeHTML(turno.enviado || '') + '</div>' +
       '<div style="color:#b5cea8">Avatar: ' + escapeHTML(turno.resposta_avatar || '(sem resposta)') + '</div>' +
-    '</div>');
+    '</div>';
+}
+
+function appendLoteTurn(el, turno) {
+  const box = el.querySelector('[data-transcript]');
+  box.insertAdjacentHTML('beforeend', loteTurnHTML(turno));
+  box.scrollTop = box.scrollHeight;
+}
+
+// Reconstrói a transcrição inteira do card a partir do log completo devolvido
+// no relatório final — o turno que decide SUCESSO/FALHA não passa pelo status
+// "continuar", então não é capturado por appendLoteTurn() durante o loop.
+function renderLoteTranscriptCompleto(el, transcricao) {
+  const box = el.querySelector('[data-transcript]');
+  box.innerHTML = (transcricao || []).map(loteTurnHTML).join('');
   box.scrollTop = box.scrollHeight;
 }
 
@@ -809,7 +821,7 @@ async function runPersonConversation(person, cardEl) {
   if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
 
   setLoteCardStatus(cardEl, 'running', 'Turno 1...');
-  let payload = { config, cenario, criterio_sucesso: criterio };
+  let payload = { config, cenario, criterio_sucesso: criterio, dados_fixos: person };
 
   while (!loteAbortado) {
     let data;
@@ -828,6 +840,7 @@ async function runPersonConversation(person, cardEl) {
     }
 
     const sucesso = data.resultado === 'SUCESSO';
+    if (data.transcricao) renderLoteTranscriptCompleto(cardEl, data.transcricao);
     setLoteCardStatus(cardEl, sucesso ? 'ok' : 'err', (data.resultado || '—') + ' · ' + (data.total_turnos || 0) + ' turnos');
     return { pessoa: person.nome, resultado: data.resultado, turnos: data.total_turnos };
   }
