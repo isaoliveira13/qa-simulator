@@ -1,0 +1,9 @@
+{
+  "name": "qa-conversacional-pai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Esqueleto de migração do workflow n8n 'ISA — QA Conversacional [PAI]' para Vercel Functions.",
+  "dependencies": {
+    "@vercel/kv": "^2.0.0"
+  }
+}
