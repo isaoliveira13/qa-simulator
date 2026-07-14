@@ -113,6 +113,24 @@
   .sim-line { color: #ce9178; margin-bottom: 4px; }
   .avatar-line { color: #b5cea8; }
   .result-area { display: none; flex-direction: column; gap: 16px; }
+  .lote-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lote-num { width: 64px; font-family: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+  .lote-num-label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .lote-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .lote-progresso { font-size: 12px; color: var(--text-muted); }
+  .lote-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .lote-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; animation: fade-slide-up .3s ease; transition: transform .2s ease, box-shadow .2s ease; }
+  .lote-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(32,28,53,.07); }
+  .lote-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .lote-card-name { font-weight: 500; font-size: 13px; }
+  .lote-card-meta { font-size: 11px; color: var(--text-muted); }
+  .lote-status-pill { font-size: 11px; padding: 2px 10px; border-radius: 12px; background: var(--bg); color: var(--text-muted); white-space: nowrap; }
+  .lote-status-running { background: var(--warning-bg); color: var(--warning-text); }
+  .lote-status-ok { background: var(--success-bg); color: var(--success-text); }
+  .lote-status-err { background: var(--danger-bg); color: var(--danger-text); }
+  .lote-status-paused { background: var(--accent-bg); color: var(--accent-text); }
+  .lote-card-transcript { background: #1a1a1a; color: #d4d4d4; border-radius: 8px; padding: 10px; font-size: 11.5px; font-family: var(--mono); line-height: 1.6; max-height: 220px; overflow-y: auto; }
+  #lote_pessoas { line-height: 2; white-space: pre; overflow-x: auto; min-height: 160px; }
   hr { border: none; border-top: 1px solid var(--border); }
   @media (max-width: 600px) { .grid2, .grid3 { grid-template-columns: 1fr; } .metrics { grid-template-columns: 1fr; } .main { padding: 1rem 1rem 3rem; } }
 
@@ -243,6 +261,50 @@
       </div>
       <div class="transcript-box" id="transcript-box"></div>
     </div>
+  </div>
+
+  <hr />
+
+  <div>
+    <div class="section-label">Teste em lote — várias pessoas, mesmo avatar, ao mesmo tempo</div>
+    <div class="card">
+      <div class="field">
+        <label>Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
+        <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}. Responda com naturalidade e cooperação a tudo que for pedido, seu objetivo é completar o processo de candidatura.</textarea>
+      </div>
+      <div class="field">
+        <label>Critério de sucesso do lote</label>
+        <textarea id="lote_criterio" rows="2">O avatar informar que entrará em contato via WhatsApp ou mensagem similar de encerramento positivo da candidatura.</textarea>
+      </div>
+      <div class="field">
+        <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
+        <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG"></textarea>
+        <div class="hint" style="margin-top:-4px">Cada pessoa fica em uma única linha, com rolagem horizontal — fica mais fácil acompanhar coluna por coluna.</div>
+      </div>
+      <div class="lote-controls">
+        <span class="lote-num-label">Gerar <input type="number" id="lote_qtd_gerar" class="lote-num" value="10" min="1" max="50" /> pessoas fictícias</span>
+        <button class="btn-secondary" onclick="gerarPessoasFicticias()">Gerar e adicionar</button>
+        <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="10" min="1" max="30" /></span>
+      </div>
+      <div class="actions">
+        <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Iniciar teste em lote
+        </button>
+        <button class="btn-stop" id="btn-lote-parar" onclick="pararLote()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+          Parar lote
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="lote-result-area" style="display:none; flex-direction:column; gap:12px;">
+    <div class="lote-header">
+      <div class="section-label" style="margin-bottom:0">Resultados do lote</div>
+      <span class="lote-progresso" id="lote-progresso"></span>
+    </div>
+    <div class="lote-grid" id="lote-grid"></div>
   </div>
 
 </div>
@@ -603,6 +665,229 @@ function finalizarTeste(data) {
     row.appendChild(btn);
   });
 })();
+
+// ---------- Teste em lote (várias pessoas, mesmo avatar, em paralelo) ----------
+
+const NOMES_M = ['Carlos','João','Pedro','Lucas','Rafael','Bruno','Gustavo','Marcelo','Thiago','André','Felipe','Rodrigo','Diego','Eduardo','Vinícius'];
+const NOMES_F = ['Ana','Maria','Juliana','Fernanda','Camila','Beatriz','Larissa','Patrícia','Renata','Carla','Aline','Bianca','Débora','Vanessa','Priscila'];
+const SOBRENOMES = ['Silva','Santos','Oliveira','Souza','Rodrigues','Ferreira','Almeida','Costa','Pereira','Carvalho','Gomes','Martins','Araújo','Melo','Barbosa'];
+const CIDADES = ['São Paulo/SP','Belo Horizonte/MG','Curitiba/PR','Recife/PE','Porto Alegre/RS','Salvador/BA','Fortaleza/CE','Brasília/DF','Manaus/AM','Goiânia/GO','Campinas/SP','Florianópolis/SC'];
+const DDDS = [11,21,31,41,51,61,71,81,85,47,48,27,62,92];
+
+let loteAbortado = false;
+
+function escolher(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function normalizarTexto(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function gerarCPF() {
+  const rnd = n => Math.floor(Math.random() * n);
+  const base = Array.from({ length: 9 }, () => rnd(10));
+  const calcDig = (arr, factorStart) => {
+    let sum = 0;
+    for (let i = 0; i < arr.length; i++) sum += arr[i] * (factorStart - i);
+    const r = sum % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  const d1 = calcDig(base, 10);
+  const d2 = calcDig([...base, d1], 11);
+  const all = [...base, d1, d2];
+  return all.slice(0,3).join('') + '.' + all.slice(3,6).join('') + '.' + all.slice(6,9).join('') + '-' + all.slice(9,11).join('');
+}
+
+function gerarTelefone() {
+  const ddd = escolher(DDDS);
+  const parte1 = '9' + Math.floor(1000 + Math.random() * 8999);
+  const parte2 = Math.floor(1000 + Math.random() * 8999);
+  return '(' + ddd + ') ' + parte1 + '-' + parte2;
+}
+
+function gerarNascimento() {
+  const dia = String(Math.floor(1 + Math.random() * 28)).padStart(2, '0');
+  const mes = String(Math.floor(1 + Math.random() * 12)).padStart(2, '0');
+  const ano = Math.floor(1970 + Math.random() * 35);
+  return dia + '/' + mes + '/' + ano;
+}
+
+function gerarPessoaFicticia() {
+  const genero = Math.random() < 0.5 ? 'masculino' : 'feminino';
+  const nome = genero === 'masculino' ? escolher(NOMES_M) : escolher(NOMES_F);
+  const sobrenome = escolher(SOBRENOMES);
+  const nomeCompleto = nome + ' ' + sobrenome;
+  const email = normalizarTexto(nome) + '.' + normalizarTexto(sobrenome) + Math.floor(10 + Math.random() * 89) + '@exemplo.com';
+  return {
+    nome: nomeCompleto,
+    cpf: gerarCPF(),
+    telefone: gerarTelefone(),
+    genero,
+    email,
+    nascimento: gerarNascimento(),
+    cidade: escolher(CIDADES)
+  };
+}
+
+function gerarPessoasFicticias() {
+  const qtd = parseInt(g('lote_qtd_gerar').value) || 10;
+  const linhas = [];
+  for (let i = 0; i < qtd; i++) {
+    const p = gerarPessoaFicticia();
+    linhas.push([p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade].join(';'));
+  }
+  const atual = g('lote_pessoas').value.trim();
+  g('lote_pessoas').value = atual ? atual + '\n' + linhas.join('\n') : linhas.join('\n');
+}
+
+function parsePessoas() {
+  const raw = g('lote_pessoas').value.trim();
+  if (!raw) return [];
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const [nome, cpf, telefone, genero, email, nascimento, cidade] = line.split(';').map(s => (s || '').trim());
+    return { nome: nome || 'Pessoa', cpf: cpf || '', telefone: telefone || '', genero: genero || '', email: email || '', nascimento: nascimento || '', cidade: cidade || '' };
+  });
+}
+
+function preencherTemplate(template, p) {
+  return template
+    .replaceAll('{nome}', p.nome)
+    .replaceAll('{cpf}', p.cpf)
+    .replaceAll('{telefone}', p.telefone)
+    .replaceAll('{genero}', p.genero)
+    .replaceAll('{email}', p.email)
+    .replaceAll('{nascimento}', p.nascimento)
+    .replaceAll('{cidade}', p.cidade);
+}
+
+function criarLoteCard(pessoa) {
+  const el = document.createElement('div');
+  el.className = 'lote-card';
+  el.innerHTML =
+    '<div class="lote-card-header">' +
+      '<span class="lote-card-name">' + escapeHTML(pessoa.nome) + '</span>' +
+      '<span class="lote-status-pill" data-status>Na fila</span>' +
+    '</div>' +
+    '<div class="lote-card-meta">' + escapeHTML(pessoa.cidade) + ' · ' + escapeHTML(pessoa.genero) + '</div>' +
+    '<div class="lote-card-transcript" data-transcript></div>';
+  return el;
+}
+
+function setLoteCardStatus(el, type, msg) {
+  const pill = el.querySelector('[data-status]');
+  pill.textContent = msg;
+  pill.className = 'lote-status-pill lote-status-' + type;
+}
+
+function appendLoteTurn(el, turno) {
+  const box = el.querySelector('[data-transcript]');
+  box.insertAdjacentHTML('beforeend',
+    '<div style="margin-bottom:8px">' +
+      '<div style="color:#ce9178">Sim: ' + escapeHTML(turno.enviado || '') + '</div>' +
+      '<div style="color:#b5cea8">Avatar: ' + escapeHTML(turno.resposta_avatar || '(sem resposta)') + '</div>' +
+    '</div>');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function runPersonConversation(person, cardEl) {
+  const cenario = preencherTemplate(g('lote_template').value, person);
+  const criterio = g('lote_criterio').value.trim();
+  const webhookUrl = g('webhook_url').value.trim();
+  const hostToken = g('host_token').value.trim();
+  const hostId = g('host_id').value.trim();
+  const hostSlug = g('host_slug').value.trim();
+  const subSlug = g('sub_slug').value.trim();
+  const maxTurnosRaw = g('max_turnos').value.trim();
+  const saudacao = g('saudacao').value.trim();
+
+  const config = { host_slug: hostSlug, host_id: hostId, saudacao_inicial: saudacao };
+  if (hostToken) config.host_token = hostToken;
+  if (subSlug) config.sub_slug = subSlug;
+  if (maxTurnosRaw) config.max_turnos = parseInt(maxTurnosRaw);
+
+  setLoteCardStatus(cardEl, 'running', 'Turno 1...');
+  let payload = { config, cenario, criterio_sucesso: criterio };
+
+  while (!loteAbortado) {
+    let data;
+    try {
+      const res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+    } catch (e) {
+      setLoteCardStatus(cardEl, 'err', 'Erro: ' + e.message);
+      return { pessoa: person.nome, resultado: 'ERRO' };
+    }
+
+    if (data.status === 'continuar') {
+      if (data.ultimo_turno) appendLoteTurn(cardEl, data.ultimo_turno);
+      setLoteCardStatus(cardEl, 'running', 'Turno ' + data.turno_atual + (data.max_turnos ? ' / ' + data.max_turnos : ''));
+      payload = { conversation_id: data.conversation_id };
+      continue;
+    }
+
+    const sucesso = data.resultado === 'SUCESSO';
+    setLoteCardStatus(cardEl, sucesso ? 'ok' : 'err', (data.resultado || '—') + ' · ' + (data.total_turnos || 0) + ' turnos');
+    return { pessoa: person.nome, resultado: data.resultado, turnos: data.total_turnos };
+  }
+
+  setLoteCardStatus(cardEl, 'paused', 'Interrompido');
+  return { pessoa: person.nome, resultado: 'INTERROMPIDO' };
+}
+
+function atualizarProgressoLote(concluidos, total) {
+  g('lote-progresso').textContent = concluidos + ' de ' + total + ' concluídos';
+}
+
+async function iniciarLote() {
+  const pessoas = parsePessoas();
+  if (!pessoas.length) {
+    g('lote-progresso').textContent = 'Adicione ao menos uma pessoa (manualmente ou gerando fictícias).';
+    return;
+  }
+
+  const webhookUrl = g('webhook_url').value.trim();
+  if (!webhookUrl) {
+    g('lote-progresso').textContent = 'Informe a URL do webhook PAI na seção Configuração.';
+    return;
+  }
+
+  loteAbortado = false;
+  g('btn-lote-iniciar').disabled = true;
+  g('btn-lote-parar').style.display = 'flex';
+
+  const grid = g('lote-grid');
+  grid.innerHTML = '';
+  const cards = pessoas.map(p => { const el = criarLoteCard(p); grid.appendChild(el); return el; });
+  g('lote-result-area').style.display = 'flex';
+
+  let concluidos = 0;
+  atualizarProgressoLote(concluidos, pessoas.length);
+
+  const maxSimult = Math.max(1, parseInt(g('lote_max_simultaneos').value) || 10);
+  let proximo = 0;
+
+  async function worker() {
+    while (proximo < pessoas.length && !loteAbortado) {
+      const i = proximo++;
+      await runPersonConversation(pessoas[i], cards[i]);
+      concluidos++;
+      atualizarProgressoLote(concluidos, pessoas.length);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(maxSimult, pessoas.length) }, () => worker());
+  await Promise.all(workers);
+
+  g('btn-lote-iniciar').disabled = false;
+  g('btn-lote-parar').style.display = 'none';
+}
+
+function pararLote() {
+  loteAbortado = true;
+  g('lote-progresso').textContent += ' — interrompendo…';
+}
 </script>
 </body>
 </html>
