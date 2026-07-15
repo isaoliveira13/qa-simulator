@@ -204,7 +204,7 @@
       <div class="grid3">
         <div class="field">
           <label>Host slug</label>
-          <input type="text" id="host_slug" value="isabella" />
+          <input type="text" id="host_slug" value="" oninput="atualizarBotoesIniciar()" placeholder="ex.: slugdoavatar" />
         </div>
         <div class="field">
           <label>Sub slug <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
@@ -241,7 +241,7 @@
     <div class="card">
       <div class="field">
         <label>Cenário — descreva quem é a pessoa simulada e como ela se comporta</label>
-        <textarea id="cenario" rows="4"></textarea>
+        <textarea id="cenario" rows="4" oninput="atualizarBotoesIniciar()"></textarea>
       </div>
       <div class="field">
         <label>Critério de sucesso (opcional) — o que define que o fluxo funcionou corretamente. Se deixado em branco, a conversa segue até o limite de turnos.</label>
@@ -251,7 +251,7 @@
   </div>
 
   <div class="actions">
-    <button class="btn-run" id="btn-run" onclick="iniciarTeste()">
+    <button class="btn-run" id="btn-run" onclick="iniciarTeste()" disabled>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       Iniciar teste
     </button>
@@ -312,7 +312,7 @@
         <div class="lote-connector">↓ gera e adiciona na lista abaixo ↓</div>
         <div class="field">
           <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
-          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG" oninput="atualizarListaCenariosIndividuais()"></textarea>
+          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG" oninput="atualizarListaCenariosIndividuais(); atualizarBotoesIniciar()"></textarea>
           <div class="hint" style="margin-top:-4px">Cada pessoa fica em uma única linha, com rolagem horizontal — fica mais fácil acompanhar coluna por coluna. Pode ser gerada automaticamente acima ou digitada manualmente aqui.</div>
         </div>
       </div>
@@ -345,7 +345,7 @@
       </div>
 
       <div class="actions">
-        <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()">
+        <button class="btn-run" id="btn-lote-iniciar" onclick="iniciarLote()" disabled>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           Iniciar teste em lote
         </button>
@@ -407,6 +407,19 @@ let secsElapsed = 0;
 let encerrarSolicitado = false;
 
 function g(id) { return document.getElementById(id); }
+
+// Impede iniciar qualquer teste (único ou em lote) sem o Host slug preenchido —
+// desabilita os dois botões de "Iniciar" enquanto o campo estiver vazio, sem
+// interferir no estado de "desabilitado por teste em andamento".
+function atualizarBotoesIniciar() {
+  const hostPreenchido = !!g('host_slug').value.trim();
+  const temCenario = !!g('cenario').value.trim();
+  const temPessoas = parsePessoas().length > 0;
+
+  if (!isRunning) g('btn-run').disabled = !(hostPreenchido && temCenario);
+  const loteRodando = g('btn-lote-parar').style.display === 'flex';
+  if (!loteRodando) g('btn-lote-iniciar').disabled = !(hostPreenchido && temPessoas);
+}
 
 function alternarModoLote() {
   const ativo = g('modo_lote_toggle').checked;
@@ -625,7 +638,7 @@ function pararUI(erro) {
   isPaused = false;
   encerrarSolicitado = false;
   stopTimer();
-  g('btn-run').disabled = false;
+  atualizarBotoesIniciar();
   g('btn-pause').style.display = 'none';
   g('btn-encerrar').style.display = 'none';
   if (erro) setStatus('err', 'Erro ao chamar o endpoint: ' + erro.message + '. Verifique se o deploy na Vercel está ativo e se as variáveis de ambiente estão configuradas.');
@@ -687,6 +700,7 @@ async function iniciarTeste() {
   const cenario = g('cenario').value.trim();
   const criterio = g('criterio').value.trim();
 
+  if (!hostSlug) { setStatus('err', 'Preencha o Host slug antes de iniciar o teste.'); return; }
   if (!cenario) { setStatus('err', 'Descreva o cenário do teste.'); return; }
   // Critério de sucesso é opcional: se vazio, a conversa segue até o limite de turnos.
 
@@ -765,7 +779,7 @@ function finalizarTeste(data) {
   isPaused = false;
   encerrarSolicitado = false;
   stopTimer();
-  g('btn-run').disabled = false;
+  atualizarBotoesIniciar();
   g('btn-pause').style.display = 'none';
   g('btn-encerrar').style.display = 'none';
   g('btn-pdf').disabled = false;
@@ -873,6 +887,7 @@ function gerarPessoasFicticias() {
   campo.classList.add('flash');
 
   atualizarListaCenariosIndividuais();
+  atualizarBotoesIniciar();
 }
 
 // Mantém "Máx. simultâneos" igual ao valor de "Gerar X pessoas fictícias"
@@ -1017,6 +1032,12 @@ function atualizarProgressoLote(concluidos, total) {
 }
 
 async function iniciarLote() {
+  const hostSlug = g('host_slug').value.trim();
+  if (!hostSlug) {
+    g('lote-progresso').textContent = 'Preencha o Host slug antes de iniciar o teste em lote.';
+    return;
+  }
+
   const pessoas = parsePessoas();
   if (!pessoas.length) {
     g('lote-progresso').textContent = 'Adicione ao menos uma pessoa (manualmente ou gerando fictícias).';
@@ -1052,14 +1073,18 @@ async function iniciarLote() {
   const workers = Array.from({ length: Math.min(maxSimult, pessoas.length) }, () => worker());
   await Promise.all(workers);
 
-  g('btn-lote-iniciar').disabled = false;
   g('btn-lote-parar').style.display = 'none';
+  atualizarBotoesIniciar();
 }
 
 function pararLote() {
   loteAbortado = true;
   g('lote-progresso').textContent += ' — interrompendo…';
 }
+
+// Garante o estado correto dos botões "Iniciar" já no carregamento da página
+// (cobre o caso de autofill do navegador preencher o Host slug sem disparar o evento).
+atualizarBotoesIniciar();
 </script>
 </body>
 </html>
