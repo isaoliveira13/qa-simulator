@@ -207,7 +207,7 @@
       <div class="grid3">
         <div class="field">
           <label>Host slug</label>
-          <input type="text" id="host_slug" value="" oninput="atualizarBotoesIniciar()" placeholder="ex.: slugdoavatar" />
+          <input type="text" id="host_slug" value="" oninput="atualizarBotoesIniciar()" placeholder="Ex.: slugdoavatar" />
         </div>
         <div class="field">
           <label>Sub slug <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
@@ -215,7 +215,7 @@
         </div>
         <div class="field">
           <label>Máx. turnos <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <input type="number" id="max_turnos" value="20" min="3" max="200" placeholder="100 (padrão)" />
+          <input type="number" id="max_turnos" value="20" min="3" max="200" placeholder="50 (padrão)" />
         </div>
       </div>
       <div class="hint" style="margin-top:-8px">Deixe "Máx. turnos" em branco para não limitar por turno — a conversa só encerra quando o avatar concluir ou travar. Isso evita marcar como FALHA um teste que só precisava de mais turnos.</div>
@@ -320,8 +320,9 @@
         <div class="lote-connector">↓ gera e adiciona na lista abaixo ↓</div>
         <div class="field">
           <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
-          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG" oninput="atualizarListaCenariosIndividuais(); atualizarBotoesIniciar()"></textarea>
+          <textarea id="lote_pessoas" rows="6" wrap="off" placeholder="Carlos Eduardo Mendes;123.456.789-00;(31) 99999-0001;masculino;carlos@exemplo.com;12/04/2000;Belo Horizonte/MG" oninput="sincronizarQtdGerarComPessoas(); atualizarListaCenariosIndividuais(); atualizarBotoesIniciar()"></textarea>
           <div class="hint" style="margin-top:-4px">Cada pessoa fica em uma única linha, com rolagem horizontal — fica mais fácil acompanhar coluna por coluna. Pode ser gerada automaticamente acima ou digitada manualmente aqui.</div>
+          <div class="aviso-banner" id="aviso_pessoas_lote">⚠ Teste em lote precisa de pelo menos 2 pessoas — hoje há só 1 linha na lista. Adicione outra pessoa (gerando acima ou digitando) para poder iniciar.</div>
         </div>
       </div>
 
@@ -424,15 +425,20 @@ function atualizarBotoesIniciar() {
   const temCenario = !!g('cenario').value.trim();
 
   const pessoas = parsePessoas();
-  const temPessoas = pessoas.length > 0;
+  // Lote é plural por definição — 1 pessoa (ou 0) não conta como lote válido,
+  // mesmo que tenha chegado nesse estado por edição manual da caixa de texto
+  // (ex.: apagar linhas depois de gerar), e não só pelo campo de quantidade.
+  const temPessoasSuficientes = pessoas.length >= 2;
+  g('aviso_pessoas_lote').classList.toggle('show', pessoas.length === 1);
+
   const individual = g('lote_cenarios_individuais_toggle').checked;
   const cenariosLoteOk = individual
-    ? (temPessoas && pessoas.every((p, i) => pessoaTemCenarioValido(i)))
+    ? (temPessoasSuficientes && pessoas.every((p, i) => pessoaTemCenarioValido(i)))
     : !!g('lote_template').value.trim();
 
   if (!isRunning) g('btn-run').disabled = !(hostPreenchido && temCenario);
   const loteRodando = g('btn-lote-parar').style.display === 'flex';
-  if (!loteRodando) g('btn-lote-iniciar').disabled = !(hostPreenchido && temPessoas && cenariosLoteOk);
+  if (!loteRodando) g('btn-lote-iniciar').disabled = !(hostPreenchido && temPessoasSuficientes && cenariosLoteOk);
 }
 
 function alternarModoLote() {
@@ -954,9 +960,25 @@ function gerarPessoasFicticias() {
   }
 
   g('lote_pessoas').value = linhasFinais.join('\n');
+  // Setar .value por JS não dispara oninput — sincroniza o campo "Gerar" manualmente
+  // para refletir a quantidade real (inclusive quando o clampe interno de min. 2 mudou o total).
+  sincronizarQtdGerarComPessoas();
   flashCampoLote();
   atualizarListaCenariosIndividuais();
   atualizarBotoesIniciar();
+}
+
+// Mantém o campo "Gerar X pessoas" honesto em relação ao que está de fato na
+// caixa "Pessoas": toda edição manual (apagar linha, colar texto, etc.) atualiza
+// o número para refletir a quantidade real de pessoas válidas (linhas em branco
+// não contam — mesmo filtro usado em parsePessoas). Evita o campo mostrar "3"
+// quando só há 2 pessoas de verdade na lista.
+function sincronizarQtdGerarComPessoas() {
+  const qtdReal = parsePessoas().length;
+  if (qtdReal > 0) {
+    g('lote_qtd_gerar').value = qtdReal;
+    validarQtdGerarLote();
+  }
 }
 
 // Lote é plural por definição — nunca deixa o campo ficar em 1 ou menos.
