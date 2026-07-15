@@ -25,7 +25,7 @@ async function inicializarSessao(body) {
   // criterio_sucesso é opcional: se não informado, a conversa segue normalmente
   // até atingir o limite de turnos, sem que a IA possa marcar "sucesso".
 
-  const maxTurnos = cfg.max_turnos ? parseInt(cfg.max_turnos) : 100;
+  const maxTurnos = cfg.max_turnos ? parseInt(cfg.max_turnos) : 3;
   if (!Number.isFinite(maxTurnos) || maxTurnos < 1) {
     throw new Error('config.max_turnos, se informado, deve ser >= 1');
   }
