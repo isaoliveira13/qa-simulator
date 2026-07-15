@@ -176,4 +176,4 @@ module.exports = async function handler(req, res) {
     console.error('[qa-conversacional-pai] erro:', e && e.stack ? e.stack : e);
     return res.status(200).json({ status: 'erro', erro: e.message || String(e) });
   }
-};
+}; 
