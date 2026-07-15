@@ -22,7 +22,8 @@ async function inicializarSessao(body) {
   const cfg = body.config || {};
 
   if (!body.cenario) throw new Error('Obrigatório: cenario');
-  if (!body.criterio_sucesso) throw new Error('Obrigatório: criterio_sucesso');
+  // criterio_sucesso é opcional: se não informado, a conversa segue normalmente
+  // até atingir o limite de turnos, sem que a IA possa marcar "sucesso".
 
   const maxTurnos = cfg.max_turnos ? parseInt(cfg.max_turnos) : 100;
   if (!Number.isFinite(maxTurnos) || maxTurnos < 1) {
@@ -54,7 +55,7 @@ async function inicializarSessao(body) {
     baseUrl, hostId, hostToken, hostSlug, subSlug,
     conversationId,
     cenario: String(body.cenario),
-    criterioSucesso: String(body.criterio_sucesso),
+    criterioSucesso: body.criterio_sucesso ? String(body.criterio_sucesso) : '',
     dadosFixos: (body.dados_fixos && typeof body.dados_fixos === 'object') ? body.dados_fixos : null,
     maxTurnos,
     saudacao,
@@ -152,6 +153,7 @@ module.exports = async function handler(req, res) {
       // Importante: responder 200 com um corpo de erro em vez de deixar a exceção
       // "vazar" sem corpo — é exatamente esse tipo de falha silenciosa que causava
       // o "Unexpected end of JSON input" no cliente quando isso acontecia no n8n.
+      console.error('[qa-conversacional-pai] sessão não encontrada:', conversationId);
       return res.status(200).json({
         status: 'erro',
         erro: `Sessão não encontrada ou expirada para conversation_id: ${conversationId}. Inicie um novo teste.`
@@ -168,6 +170,10 @@ module.exports = async function handler(req, res) {
     const resposta = await rodarTurno(session);
     return res.status(200).json(resposta);
   } catch (e) {
+    // Loga de verdade nos Runtime Logs da Vercel — a resposta HTTP fica 200 de
+    // propósito (evita corpo vazio no cliente), então sem isso o erro real
+    // fica invisível nos logs, só aparecendo como "200 OK" genérico.
+    console.error('[qa-conversacional-pai] erro:', e && e.stack ? e.stack : e);
     return res.status(200).json({ status: 'erro', erro: e.message || String(e) });
   }
 };

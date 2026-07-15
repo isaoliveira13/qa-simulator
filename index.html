@@ -154,7 +154,7 @@
   .lote-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .lote-card-name { font-weight: 500; font-size: 13px; }
   .lote-card-meta { font-size: 11px; color: var(--text-muted); }
-  .lote-status-pill { font-size: 11px; padding: 2px 10px; border-radius: 12px; background: var(--bg); color: var(--text-muted); white-space: nowrap; }
+  .lote-status-pill { font-size: 11px; padding: 2px 10px; border-radius: 12px; background: var(--bg); color: var(--text-muted); max-width: 220px; text-align: right; }
   .lote-status-running { background: var(--warning-bg); color: var(--warning-text); }
   .lote-status-ok { background: var(--success-bg); color: var(--success-text); }
   .lote-status-err { background: var(--danger-bg); color: var(--danger-text); }
@@ -244,7 +244,7 @@
         <textarea id="cenario" rows="4"></textarea>
       </div>
       <div class="field">
-        <label>Critério de sucesso — o que define que o fluxo funcionou corretamente</label>
+        <label>Critério de sucesso (opcional) — o que define que o fluxo funcionou corretamente. Se deixado em branco, a conversa segue até o limite de turnos.</label>
         <textarea id="criterio" rows="2"></textarea>
       </div>
     </div>
@@ -334,7 +334,7 @@
           <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
         </div>
         <div class="field">
-          <label>Critério de sucesso do lote</label>
+          <label>Critério de sucesso do lote (opcional) — se vazio, a conversa segue até o limite de turnos</label>
           <textarea id="lote_criterio" rows="2"></textarea>
         </div>
       </div>
@@ -379,7 +379,7 @@
     <textarea id="modal_cenario_texto" rows="5"></textarea>
   </div>
   <div class="field">
-    <label>Critério de sucesso desta pessoa</label>
+    <label>Critério de sucesso desta pessoa (opcional)</label>
     <textarea id="modal_criterio_texto" rows="3"></textarea>
   </div>
   <div class="actions">
@@ -688,7 +688,7 @@ async function iniciarTeste() {
   const criterio = g('criterio').value.trim();
 
   if (!cenario) { setStatus('err', 'Descreva o cenário do teste.'); return; }
-  if (!criterio) { setStatus('err', 'Defina o critério de sucesso.'); return; }
+  // Critério de sucesso é opcional: se vazio, a conversa segue até o limite de turnos.
 
   isRunning = true;
   isPaused = false;
@@ -777,8 +777,8 @@ function finalizarTeste(data) {
     sucesso
       ? 'Teste concluído com sucesso em ' + data.total_turnos + ' turnos (' + data.tempo_segundos + 's).'
       : manual
-        ? 'Teste encerrado manualmente após ' + data.total_turnos + ' turnos (' + data.tempo_segundos + 's).'
-        : 'Falha: ' + (data.motivo_encerramento || 'Não concluído')
+        ? (data.motivo_encerramento || 'Teste encerrado') + ' — ' + data.total_turnos + ' turnos (' + data.tempo_segundos + 's).'
+        : 'Falha: ' + (data.erro || data.motivo_encerramento || 'Não concluído')
   );
 
   renderMetricsFinal(data, sucesso, manual);
@@ -997,8 +997,12 @@ async function runPersonConversation(person, cardEl, overrides) {
     }
 
     const sucesso = data.resultado === 'SUCESSO';
+    const encerrado = data.resultado === 'ENCERRADO';
     if (data.transcricao) renderLoteTranscriptCompleto(cardEl, data.transcricao);
-    setLoteCardStatus(cardEl, sucesso ? 'ok' : 'err', (data.resultado || '—') + ' · ' + (data.total_turnos || 0) + ' turnos');
+    const rotuloStatus = data.resultado
+      ? (data.resultado + ' · ' + (data.total_turnos || 0) + ' turnos')
+      : ('Erro: ' + (data.erro || 'falha desconhecida'));
+    setLoteCardStatus(cardEl, sucesso ? 'ok' : (encerrado ? 'paused' : 'err'), rotuloStatus);
     cardEl._dadosFinal = data;
     cardEl.querySelector('[data-pdf-btn]').style.display = 'inline-flex';
     return { pessoa: person.nome, resultado: data.resultado, turnos: data.total_turnos };
