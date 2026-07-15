@@ -131,7 +131,10 @@
     0% { box-shadow: 0 0 0 0 rgba(99,102,241,.5); border-color: var(--accent); }
     100% { box-shadow: 0 0 0 8px rgba(99,102,241,0); border-color: var(--border); }
   }
-  #lote_pessoas.flash { animation: lote-pessoas-flash .9s ease-out; }
+  #lote_pessoas.flash, #cenario.flash { animation: lote-pessoas-flash .9s ease-out; }
+  .lote-num.invalido { border-color: var(--danger-border); background: var(--danger-bg); }
+  .aviso-banner { display: none; align-items: center; gap: 6px; background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger-text); border-radius: 10px; padding: 8px 12px; font-size: 12px; margin-top: -4px; }
+  .aviso-banner.show { display: flex; }
   .lote-individual-lista { display: flex; flex-direction: column; gap: 8px; }
   .lote-individual-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
   .lote-individual-nome { font-size: 13px; font-weight: 500; flex: 1; }
@@ -218,7 +221,7 @@
       <div class="hint" style="margin-top:-8px">Deixe "Máx. turnos" em branco para não limitar por turno — a conversa só encerra quando o avatar concluir ou travar. Isso evita marcar como FALHA um teste que só precisava de mais turnos.</div>
       <div class="field">
         <label>Saudação inicial</label>
-        <input type="text" id="saudacao" value="oii" />
+        <input type="text" id="saudacao" value="Oi!" />
       </div>
     </div>
   </div>
@@ -240,8 +243,12 @@
     <div class="section-label">Teste</div>
     <div class="card">
       <div class="field">
-        <label>Cenário — descreva quem é a pessoa simulada e como ela se comporta</label>
+        <div class="lote-controls" style="justify-content:space-between; flex-wrap:nowrap">
+          <label style="margin:0">Cenário — descreva quem é a pessoa simulada e como ela se comporta</label>
+          <button class="btn-secondary" type="button" style="flex-shrink:0" onclick="gerarCenarioPessoaFicticia()">Gerar pessoa fictícia</button>
+        </div>
         <textarea id="cenario" rows="4" oninput="atualizarBotoesIniciar()"></textarea>
+        <div class="hint" style="margin-top:-4px">Preenche o cenário com um nome, CPF, telefone, email, data de nascimento e cidade fictícios prontos, para não precisar digitar na mão. Clicar de novo troca por uma pessoa diferente.</div>
       </div>
       <div class="field">
         <label>Critério de sucesso (opcional) — o que define que o fluxo funcionou corretamente. Se deixado em branco, a conversa segue até o limite de turnos.</label>
@@ -295,9 +302,10 @@
       <div class="lote-pessoas-group">
         <div class="lote-pessoas-group-label">Pessoas do lote</div>
         <div class="lote-controls">
-          <span class="lote-num-label">Gerar <input type="number" id="lote_qtd_gerar" class="lote-num" value="3" min="1" max="50" oninput="sincronizarMaxSimultaneos()" /> pessoas fictícias</span>
+          <span class="lote-num-label">Gerar <input type="number" id="lote_qtd_gerar" class="lote-num" value="3" min="2" max="50" oninput="validarQtdGerarLote()" onblur="clampQtdGerarLote()" /> pessoas fictícias</span>
           <button class="btn-secondary" onclick="gerarPessoasFicticias()">Gerar e adicionar</button>
         </div>
+        <div class="aviso-banner" id="aviso_qtd_lote">⚠ Teste em lote precisa de pelo menos 2 pessoas — não é possível testar em lote com apenas 1.</div>
         <div class="lote-controls">
           <span class="lote-num-label">
             Máx. simultâneos = qtd. gerada
@@ -331,7 +339,7 @@
       <div id="lote-cenario-compartilhado" style="display:flex; flex-direction:column; gap:14px;">
         <div class="field">
           <label>Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
-          <textarea id="lote_template" rows="3">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
+          <textarea id="lote_template" rows="3" oninput="atualizarBotoesIniciar()">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
         </div>
         <div class="field">
           <label>Critério de sucesso do lote (opcional) — se vazio, a conversa segue até o limite de turnos</label>
@@ -414,11 +422,17 @@ function g(id) { return document.getElementById(id); }
 function atualizarBotoesIniciar() {
   const hostPreenchido = !!g('host_slug').value.trim();
   const temCenario = !!g('cenario').value.trim();
-  const temPessoas = parsePessoas().length > 0;
+
+  const pessoas = parsePessoas();
+  const temPessoas = pessoas.length > 0;
+  const individual = g('lote_cenarios_individuais_toggle').checked;
+  const cenariosLoteOk = individual
+    ? (temPessoas && pessoas.every((p, i) => pessoaTemCenarioValido(i)))
+    : !!g('lote_template').value.trim();
 
   if (!isRunning) g('btn-run').disabled = !(hostPreenchido && temCenario);
   const loteRodando = g('btn-lote-parar').style.display === 'flex';
-  if (!loteRodando) g('btn-lote-iniciar').disabled = !(hostPreenchido && temPessoas);
+  if (!loteRodando) g('btn-lote-iniciar').disabled = !(hostPreenchido && temPessoas && cenariosLoteOk);
 }
 
 function alternarModoLote() {
@@ -434,11 +448,24 @@ function alternarModoLote() {
 let cenariosIndividuais = {};
 let indiceModalAtual = null;
 
+// Uma pessoa tem cenário válido se: (a) ela tem um cenário individual configurado
+// e não-vazio, OU (b) ela nunca foi configurada individualmente E o Template
+// compartilhado não está vazio (é o fallback natural nesse caso). Se o cenário
+// individual foi configurado e depois apagado manualmente (ficou ''), NÃO conta
+// como válido — mesmo que o Template exista, porque a pessoa foi explicitamente
+// deixada sem cenário.
+function pessoaTemCenarioValido(indice) {
+  const override = cenariosIndividuais[indice];
+  if (override) return !!(override.cenario && override.cenario.trim());
+  return !!g('lote_template').value.trim();
+}
+
 function alternarCenariosIndividuais() {
   const ativo = g('lote_cenarios_individuais_toggle').checked;
   g('lote-cenario-compartilhado').style.display = ativo ? 'none' : 'flex';
   g('lote-cenarios-individuais').style.display = ativo ? 'flex' : 'none';
   if (ativo) atualizarListaCenariosIndividuais();
+  atualizarBotoesIniciar();
 }
 
 function atualizarListaCenariosIndividuais() {
@@ -485,6 +512,7 @@ function salvarCenarioIndividual() {
   };
   fecharModalCenario();
   atualizarListaCenariosIndividuais();
+  atualizarBotoesIniciar();
 }
 
 function setStatus(type, msg) {
@@ -870,24 +898,87 @@ function gerarPessoaFicticia() {
   };
 }
 
-function gerarPessoasFicticias() {
-  const qtd = parseInt(g('lote_qtd_gerar').value) || 10;
-  const linhas = [];
-  for (let i = 0; i < qtd; i++) {
-    const p = gerarPessoaFicticia();
-    linhas.push([p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade].join(';'));
-  }
-  const atual = g('lote_pessoas').value.trim();
-  g('lote_pessoas').value = atual ? atual + '\n' + linhas.join('\n') : linhas.join('\n');
+// Mesmo template padrão usado no lote (função gerarPessoaFicticia), reaproveitado
+// aqui para o teste único não depender do campo "Template do cenário" do lote,
+// que fica escondido quando o modo único está ativo.
+const TEMPLATE_CENARIO_PADRAO = 'Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.';
 
-  // Brilho rápido no campo, confirmando visualmente que as pessoas caíram ali.
+// Botão "Gerar pessoa fictícia" do teste único: mesma geração de dados
+// fictícios do lote, só que preenchendo direto o campo "Cenário" com uma
+// única pessoa pronta. Clicar de novo troca por uma pessoa diferente.
+function gerarCenarioPessoaFicticia() {
+  const pessoa = gerarPessoaFicticia();
+  g('cenario').value = preencherTemplate(TEMPLATE_CENARIO_PADRAO, pessoa);
+
+  const campo = g('cenario');
+  campo.classList.remove('flash');
+  void campo.offsetWidth;
+  campo.classList.add('flash');
+
+  atualizarBotoesIniciar();
+}
+
+function linhaDePessoa(p) {
+  return [p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade].join(';');
+}
+
+function linhasAtuaisDoLote() {
+  const atual = g('lote_pessoas').value.trim();
+  return atual ? atual.split('\n').map(l => l.trim()).filter(Boolean) : [];
+}
+
+function flashCampoLote() {
   const campo = g('lote_pessoas');
   campo.classList.remove('flash');
   void campo.offsetWidth; // força reinício da animação em cliques seguidos
   campo.classList.add('flash');
+}
 
+// Regra do botão "Gerar e adicionar":
+// - Se a quantidade pedida for MAIOR que o total já na caixa, mantém quem já está
+//   lá e só completa a diferença (top-up até chegar na quantidade pedida).
+// - Se a quantidade pedida for IGUAL ou MENOR que o total já na caixa, substitui
+//   tudo por um lote novo (pessoas diferentes) do tamanho pedido — não soma.
+function gerarPessoasFicticias() {
+  // Lote = duas ou mais pessoas; nunca deixa gerar quantidade <= 1.
+  const qtd = Math.max(2, parseInt(g('lote_qtd_gerar').value) || 10);
+  const linhasAtuais = linhasAtuaisDoLote();
+
+  let linhasFinais;
+  if (qtd > linhasAtuais.length) {
+    const diff = qtd - linhasAtuais.length;
+    const novas = Array.from({ length: diff }, () => linhaDePessoa(gerarPessoaFicticia()));
+    linhasFinais = linhasAtuais.concat(novas);
+  } else {
+    linhasFinais = Array.from({ length: qtd }, () => linhaDePessoa(gerarPessoaFicticia()));
+  }
+
+  g('lote_pessoas').value = linhasFinais.join('\n');
+  flashCampoLote();
   atualizarListaCenariosIndividuais();
   atualizarBotoesIniciar();
+}
+
+// Lote é plural por definição — nunca deixa o campo ficar em 1 ou menos.
+// Mostra o aviso em tempo real (a cada tecla), mas só corrige o valor no blur:
+// se corrigisse durante a digitação, travaria quem está tentando escrever "12", "13" etc.
+function validarQtdGerarLote() {
+  const campo = g('lote_qtd_gerar');
+  const aviso = g('aviso_qtd_lote');
+  const val = parseInt(campo.value);
+  const invalido = !isNaN(val) && val < 2;
+  campo.classList.toggle('invalido', invalido);
+  aviso.classList.toggle('show', invalido);
+  sincronizarMaxSimultaneos();
+}
+
+function clampQtdGerarLote() {
+  const campo = g('lote_qtd_gerar');
+  const val = parseInt(campo.value);
+  if (isNaN(val) || val < 2) campo.value = 2;
+  campo.classList.remove('invalido');
+  g('aviso_qtd_lote').classList.remove('show');
+  sincronizarMaxSimultaneos();
 }
 
 // Mantém "Máx. simultâneos" igual ao valor de "Gerar X pessoas fictícias"
@@ -1044,6 +1135,16 @@ async function iniciarLote() {
     return;
   }
 
+  const individual = g('lote_cenarios_individuais_toggle').checked;
+  if (individual && !pessoas.every((p, i) => pessoaTemCenarioValido(i))) {
+    g('lote-progresso').textContent = 'Defina um cenário para cada pessoa (ou desative "Cenários diferentes por pessoa") antes de iniciar.';
+    return;
+  }
+  if (!individual && !g('lote_template').value.trim()) {
+    g('lote-progresso').textContent = 'Preencha o Template do cenário antes de iniciar.';
+    return;
+  }
+
   loteAbortado = false;
   g('btn-lote-iniciar').disabled = true;
   g('btn-lote-parar').style.display = 'flex';
@@ -1057,7 +1158,6 @@ async function iniciarLote() {
   atualizarProgressoLote(concluidos, pessoas.length);
 
   const maxSimult = Math.max(1, parseInt(g('lote_max_simultaneos').value) || 10);
-  const individual = g('lote_cenarios_individuais_toggle').checked;
   let proximo = 0;
 
   async function worker() {
