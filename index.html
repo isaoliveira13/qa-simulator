@@ -1098,7 +1098,7 @@ async function runPersonConversation(person, cardEl, overrides) {
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
   const maxTurnosRaw = g('max_turnos').value.trim();
-  const saudacao = g('saudacao').value.trim();
+  const saudacao = g('saudacao').value.trim(); 
 
   const ambiente = g('ambiente_zenta').value;
   const config = { host_slug: hostSlug, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
