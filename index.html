@@ -4,6 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ISA — QA Conversacional</title>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('isa_qa_tema');
+      var tema = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', tema);
+    } catch (e) {}
+  })();
+</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231a1a18'/%3E%3Cpath fill='white' d='M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm-1 11H9V8h2v7zm4 0h-2V8h2v7z'/%3E%3C/svg%3E" />
 <style>
   :root {
@@ -30,6 +39,29 @@
     --radius: 8px;
     --mono: 'Menlo', 'Consolas', monospace;
   }
+  [data-theme="dark"] {
+    --bg: #131221;
+    --surface: #1c1b2b;
+    --border: #2c2a40;
+    --border-strong: #3d3b56;
+    --text: #e8e7f2;
+    --text-secondary: #a8a5c2;
+    --text-muted: #726f8c;
+    --accent: #7c7ff7;
+    --accent-hover: #9497ff;
+    --accent-bg: #26264a;
+    --accent-text: #a9abff;
+    --success-bg: #0f2b22;
+    --success-text: #34d399;
+    --success-border: #1c5241;
+    --danger-bg: #2e1518;
+    --danger-text: #f87171;
+    --danger-border: #5c2529;
+    --warning-bg: #2e2410;
+    --warning-text: #fbbf24;
+    --warning-border: #5c481c;
+  }
+  html { transition: background .2s; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; gap: 12px; height: 56px; }
@@ -38,6 +70,12 @@
   header h1 { font-size: 15px; font-weight: 500; }
   header span { font-size: 13px; color: var(--text-muted); margin-left: 4px; }
   .env-picker { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .theme-toggle { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-secondary); cursor: pointer; transition: background .15s, color .15s, transform .15s, box-shadow .15s; }
+  .theme-toggle:hover { color: var(--accent-text); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 6px 14px rgba(99,102,241,.18); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+  .theme-toggle .icon-moon { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   .env-picker label { font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
   .env-picker select { font-family: inherit; font-size: 13px; font-weight: 500; color: var(--accent-text); background: var(--accent-bg); border: 1px solid var(--border-strong); border-radius: 20px; padding: 6px 14px; cursor: pointer; outline: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
   .env-picker select:hover { border-color: var(--accent); box-shadow: 0 6px 14px rgba(99,102,241,.18); transform: translateY(-1px); }
@@ -140,10 +178,41 @@
   .lote-individual-nome { font-size: 13px; font-weight: 500; flex: 1; }
   .lote-individual-status { font-size: 11px; padding: 2px 10px; border-radius: 12px; background: var(--surface); color: var(--text-muted); white-space: nowrap; }
   .lote-individual-status.configurado { background: var(--success-bg); color: var(--success-text); }
-  dialog#modal-cenario-individual { border: none; border-radius: 14px; padding: 1.5rem; width: min(560px, 92vw); max-height: 85vh; overflow-y: auto; background: var(--surface); color: var(--text); box-shadow: 0 20px 50px rgba(32,28,53,.25); flex-direction: column; gap: 14px; margin: 0; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-  dialog#modal-cenario-individual:not([open]) { display: none; }
-  dialog#modal-cenario-individual[open] { display: flex; }
-  dialog#modal-cenario-individual::backdrop { background: rgba(32,28,53,.45); }
+  dialog#modal-cenario-individual, dialog#modal-persona { border: none; border-radius: 14px; padding: 1.5rem; width: min(560px, 92vw); max-height: 85vh; overflow-y: auto; background: var(--surface); color: var(--text); box-shadow: 0 20px 50px rgba(32,28,53,.25); flex-direction: column; gap: 14px; margin: 0; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  dialog#modal-cenario-individual:not([open]), dialog#modal-persona:not([open]) { display: none; }
+  dialog#modal-cenario-individual[open], dialog#modal-persona[open] { display: flex; }
+  dialog#modal-cenario-individual::backdrop, dialog#modal-persona::backdrop { background: rgba(32,28,53,.45); }
+  /* ---------- Personas ---------- */
+  .persona-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .persona-toolbar .persona-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .persona-lista { display: flex; flex-direction: column; gap: 8px; }
+  .persona-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; transition: border-color .15s; }
+  .persona-row:hover { border-color: var(--border-strong); }
+  .persona-info { flex: 1; min-width: 0; }
+  .persona-nome { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .persona-badge { font-size: 10px; font-weight: 600; color: var(--accent-text); background: var(--accent-bg); border-radius: 10px; padding: 1px 7px; }
+  .persona-preview { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; margin-top: 2px; }
+  .persona-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .persona-vazio { font-size: 12px; color: var(--text-muted); }
+  .persona-picker { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .persona-picker select { font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--accent-text); background: var(--accent-bg); border: 1px solid var(--border-strong); border-radius: 20px; padding: 5px 12px; cursor: pointer; outline: none; max-width: 240px; transition: border-color .15s; }
+  .persona-picker select:hover { border-color: var(--accent); }
+  .btn-danger-ghost { color: var(--danger-text); border-color: var(--danger-border); }
+  .btn-danger-ghost:hover { background: var(--danger-bg); }
+  /* ---------- Autenticação ---------- */
+  .auth-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 100; }
+  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: min(400px, 94vw); box-shadow: 0 20px 50px rgba(32,28,53,.12); display: flex; flex-direction: column; gap: 16px; animation: fade-slide-up .3s ease; }
+  .auth-logo { width: 42px; height: 42px; background: var(--text); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+  .auth-logo svg { width: 24px; height: 24px; fill: var(--surface); }
+  .auth-title { font-size: 18px; font-weight: 600; }
+  .auth-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+  .auth-tabs { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+  .auth-tab { flex: 1; font-family: inherit; font-size: 13px; font-weight: 500; padding: 8px; border-radius: 7px; cursor: pointer; color: var(--text-secondary); border: none; background: none; transition: background .15s, color .15s; }
+  .auth-tab.active { background: var(--surface); color: var(--accent-text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .auth-error { display: none; font-size: 12px; color: var(--danger-text); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 8px; padding: 8px 12px; }
+  .auth-error.show { display: block; }
+  .header-user { display: flex; align-items: center; gap: 10px; margin-left: 12px; }
+  .header-user-email { font-size: 12px; color: var(--text-secondary); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .modal-header { display: flex; align-items: center; justify-content: space-between; }
   .modal-header h3 { font-size: 15px; font-weight: 600; }
   .modal-close { background: none; border: none; font-size: 20px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: background .15s, color .15s; }
@@ -183,7 +252,34 @@
 </head>
 <body>
 
-<header>
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+    </div>
+    <div>
+      <div class="auth-title">ISA — QA Conversacional</div>
+      <div class="auth-sub">Entre para acessar suas personas e testes.</div>
+    </div>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" id="auth-tab-login" onclick="setAuthMode('login')">Entrar</button>
+      <button type="button" class="auth-tab" id="auth-tab-register" onclick="setAuthMode('register')">Criar conta</button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="username" placeholder="voce@zenta.to" onkeydown="if(event.key==='Enter')g('auth-password').focus()" />
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()" />
+      <div class="hint" id="auth-password-hint" style="display:none">Mínimo de 8 caracteres.</div>
+    </div>
+    <button class="btn-run" id="auth-submit" onclick="submitAuth()" style="justify-content:center">Entrar</button>
+  </div>
+</div>
+
+<header id="app-header" style="display:none">
   <div class="logo">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
   </div>
@@ -197,9 +293,17 @@
       <option value="homolog">Homolog</option>
     </select>
   </div>
+  <button class="theme-toggle" id="theme_toggle" onclick="alternarTema()" title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+  <div class="header-user" id="header-user" style="display:none">
+    <span class="header-user-email" id="header-user-email"></span>
+    <button class="btn-secondary" style="padding:6px 12px" onclick="logout()">Sair</button>
+  </div>
 </header>
 
-<div class="main">
+<div class="main" id="app-main" style="display:none">
 
   <div>
     <div class="section-label">Avatar</div>
@@ -226,6 +330,23 @@
     </div>
   </div>
 
+  <div>
+    <div class="section-label">Personas</div>
+    <div class="card">
+      <div class="persona-toolbar">
+        <span class="hint" id="persona-count" style="margin:0"></span>
+        <div class="persona-actions">
+          <button class="btn-secondary" type="button" onclick="abrirModalPersona()">+ Nova persona</button>
+          <button class="btn-secondary" type="button" onclick="exportarPersonas()">Exportar</button>
+          <button class="btn-secondary" type="button" onclick="g('persona-import-input').click()">Importar</button>
+          <input type="file" id="persona-import-input" accept="application/json,.json" style="display:none" onchange="importarPersonas(event)" />
+        </div>
+      </div>
+      <div class="hint" style="margin-top:-4px">Cenários salvos e reutilizáveis. Ex.: "Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte." Use nos testes único e em lote. O texto pode usar os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}, preenchidos automaticamente com dados fictícios.</div>
+      <div id="persona-lista" class="persona-lista"></div>
+    </div>
+  </div>
+
   <hr />
 
   <div class="mode-switch-row">
@@ -243,9 +364,16 @@
     <div class="section-label">Teste</div>
     <div class="card">
       <div class="field">
-        <div class="lote-controls" style="justify-content:space-between; flex-wrap:nowrap">
+        <div class="lote-controls" style="justify-content:space-between; flex-wrap:wrap">
           <label style="margin:0">Cenário — descreva quem é a pessoa simulada e como ela se comporta</label>
-          <button class="btn-secondary" type="button" style="flex-shrink:0" onclick="gerarCenarioPessoaFicticia()">Gerar pessoa fictícia</button>
+          <div style="display:flex; gap:8px; flex-shrink:0; align-items:center; flex-wrap:wrap">
+            <div class="persona-picker">
+              <select id="persona_picker_unico" onchange="aplicarPersonaUnico(this.value); this.value='';">
+                <option value="">Usar persona…</option>
+              </select>
+            </div>
+            <button class="btn-secondary" type="button" onclick="gerarCenarioPessoaFicticia()">Gerar pessoa fictícia</button>
+          </div>
         </div>
         <textarea id="cenario" rows="4" oninput="atualizarBotoesIniciar()"></textarea>
         <div class="hint" style="margin-top:-4px">Preenche o cenário com um nome, CPF, telefone, email, data de nascimento e cidade fictícios prontos, para não precisar digitar na mão. Clicar de novo troca por uma pessoa diferente.</div>
@@ -339,7 +467,14 @@
 
       <div id="lote-cenario-compartilhado" style="display:flex; flex-direction:column; gap:14px;">
         <div class="field">
-          <label>Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
+          <div class="lote-controls" style="justify-content:space-between; flex-wrap:wrap">
+            <label style="margin:0">Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
+            <div class="persona-picker">
+              <select id="persona_picker_lote" onchange="aplicarPersonaLoteTemplate(this.value); this.value='';">
+                <option value="">Usar persona…</option>
+              </select>
+            </div>
+          </div>
           <textarea id="lote_template" rows="3" oninput="atualizarBotoesIniciar()">Simule que você é a pessoa {nome}, do CPF {cpf}, telefone {telefone}, gênero {genero}, email {email}, que nasceu no dia {nascimento} na cidade de {cidade}, e está usando a plataforma como qualquer outro usuário. Responda com naturalidade e cooperação a tudo que for pedido.</textarea>
         </div>
         <div class="field">
@@ -384,7 +519,14 @@
     <button type="button" class="modal-close" onclick="fecharModalCenario()" aria-label="Fechar">&times;</button>
   </div>
   <div class="field">
-    <label>Cenário desta pessoa</label>
+    <div class="lote-controls" style="justify-content:space-between; flex-wrap:wrap">
+      <label style="margin:0">Cenário desta pessoa</label>
+      <div class="persona-picker">
+        <select id="persona_picker_modal" onchange="aplicarPersonaModal(this.value); this.value='';">
+          <option value="">Usar persona…</option>
+        </select>
+      </div>
+    </div>
     <textarea id="modal_cenario_texto" rows="5"></textarea>
   </div>
   <div class="field">
@@ -397,6 +539,30 @@
   </div>
 </dialog>
 
+<dialog id="modal-persona">
+  <div class="modal-header">
+    <h3 id="modal-persona-titulo">Nova persona</h3>
+    <button type="button" class="modal-close" onclick="fecharModalPersona()" aria-label="Fechar">&times;</button>
+  </div>
+  <div class="field">
+    <label>Nome da persona</label>
+    <input type="text" id="modal_persona_nome" placeholder="Ex.: Candidato Administração — BH" />
+  </div>
+  <div class="field">
+    <label>Cenário</label>
+    <textarea id="modal_persona_cenario" rows="5" placeholder="Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte..."></textarea>
+    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} — preenchidos automaticamente com dados fictícios ao aplicar.</div>
+  </div>
+  <div class="field">
+    <label>Critério de sucesso (opcional)</label>
+    <textarea id="modal_persona_criterio" rows="3"></textarea>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn-run" onclick="salvarPersona()">Salvar persona</button>
+    <button type="button" class="btn-secondary" onclick="fecharModalPersona()">Cancelar</button>
+  </div>
+</dialog>
+
 <script>
 const AMBIENTES_ZENTA = {
   prod: 'https://api.zenta.to',
@@ -405,6 +571,13 @@ const AMBIENTES_ZENTA = {
 };
 
 const WEBHOOK_URL_PADRAO = '/api/qa-conversacional-pai';
+
+function alternarTema() {
+  const atual = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const novo = atual === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', novo);
+  try { localStorage.setItem('isa_qa_tema', novo); } catch (e) {}
+}
 
 let timerInterval = null;
 let lastResult = null;
@@ -1098,7 +1271,7 @@ async function runPersonConversation(person, cardEl, overrides) {
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
   const maxTurnosRaw = g('max_turnos').value.trim();
-  const saudacao = g('saudacao').value.trim(); 
+  const saudacao = g('saudacao').value.trim();
 
   const ambiente = g('ambiente_zenta').value;
   const config = { host_slug: hostSlug, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
@@ -1204,9 +1377,319 @@ function pararLote() {
   g('lote-progresso').textContent += ' — interrompendo…';
 }
 
-// Garante o estado correto dos botões "Iniciar" já no carregamento da página
-// (cobre o caso de autofill do navegador preencher o Host slug sem disparar o evento).
+// ---------- Personas (cenários salvos e reutilizáveis, por usuário) ----------
+// Guardadas no servidor (KV), isoladas por conta logada — cada pessoa só vê as suas.
+let personas = [];
+let personaEditandoId = null;
+
+async function carregarPersonas() {
+  try {
+    const r = await fetch('/api/personas');
+    if (!r.ok) { personas = []; return; }
+    const data = await r.json();
+    personas = Array.isArray(data.personas) ? data.personas : [];
+  } catch (e) {
+    personas = [];
+  }
+}
+
+async function persistirPersonas() {
+  try {
+    const r = await fetch('/api/personas', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personas })
+    });
+    if (r.ok) {
+      const data = await r.json();
+      if (Array.isArray(data.personas)) personas = data.personas;
+    }
+  } catch (e) {}
+}
+
+function novoIdPersona() {
+  return 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+function getPersona(id) {
+  return personas.find(p => p.id === id) || null;
+}
+
+function personaTemPlaceholder(texto) {
+  return /\{(nome|cpf|telefone|genero|email|nascimento|cidade)\}/.test(texto || '');
+}
+
+// Preenche placeholders com uma pessoa fictícia nova (teste único e template do lote sem pessoa específica).
+function resolverCenarioPersona(texto) {
+  return personaTemPlaceholder(texto) ? preencherTemplate(texto, gerarPessoaFicticia()) : texto;
+}
+
+function renderPersonas() {
+  const lista = g('persona-lista');
+  const count = g('persona-count');
+  lista.innerHTML = '';
+  if (!personas.length) {
+    lista.innerHTML = '<div class="persona-vazio">Nenhuma persona salva ainda. Clique em "+ Nova persona" para criar cenários reutilizáveis.</div>';
+    count.textContent = '';
+  } else {
+    count.textContent = personas.length + (personas.length === 1 ? ' persona salva' : ' personas salvas');
+    personas.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'persona-row';
+      const temPh = personaTemPlaceholder(p.cenario);
+      row.innerHTML =
+        '<div class="persona-info">' +
+          '<div class="persona-nome">' + escapeHTML(p.nome) + (temPh ? '<span class="persona-badge">placeholders</span>' : '') + '</div>' +
+          '<div class="persona-preview">' + escapeHTML(p.cenario || '(sem cenário)') + '</div>' +
+        '</div>' +
+        '<div class="persona-row-actions">' +
+          '<button type="button" class="btn-secondary" data-editar>Editar</button>' +
+          '<button type="button" class="btn-secondary btn-danger-ghost" data-excluir>Excluir</button>' +
+        '</div>';
+      row.querySelector('[data-editar]').addEventListener('click', () => abrirModalPersona(p.id));
+      row.querySelector('[data-excluir]').addEventListener('click', () => excluirPersona(p.id));
+      lista.appendChild(row);
+    });
+  }
+  atualizarPickersPersona();
+}
+
+function atualizarPickersPersona() {
+  ['persona_picker_unico', 'persona_picker_lote', 'persona_picker_modal'].forEach(id => {
+    const sel = g(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = personas.length ? 'Usar persona…' : 'Nenhuma persona';
+    sel.appendChild(opt0);
+    personas.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.nome;
+      sel.appendChild(o);
+    });
+    sel.disabled = !personas.length;
+  });
+}
+
+function abrirModalPersona(id) {
+  personaEditandoId = id || null;
+  const p = id ? getPersona(id) : null;
+  g('modal-persona-titulo').textContent = p ? 'Editar persona' : 'Nova persona';
+  g('modal_persona_nome').value = p ? p.nome : '';
+  g('modal_persona_cenario').value = p ? p.cenario : '';
+  g('modal_persona_criterio').value = p ? (p.criterio || '') : '';
+  g('modal-persona').showModal();
+  g('modal_persona_nome').focus();
+}
+
+function fecharModalPersona() {
+  g('modal-persona').close();
+  personaEditandoId = null;
+}
+
+async function salvarPersona() {
+  const nome = g('modal_persona_nome').value.trim();
+  const cenario = g('modal_persona_cenario').value.trim();
+  const criterio = g('modal_persona_criterio').value.trim();
+  if (!nome) { g('modal_persona_nome').focus(); return; }
+  if (!cenario) { g('modal_persona_cenario').focus(); return; }
+  if (personaEditandoId) {
+    const p = getPersona(personaEditandoId);
+    if (p) { p.nome = nome; p.cenario = cenario; p.criterio = criterio; }
+  } else {
+    personas.push({ id: novoIdPersona(), nome, cenario, criterio });
+  }
+  fecharModalPersona();
+  await persistirPersonas();
+  renderPersonas();
+}
+
+async function excluirPersona(id) {
+  const p = getPersona(id);
+  if (!p) return;
+  if (!confirm('Excluir a persona "' + p.nome + '"?')) return;
+  personas = personas.filter(x => x.id !== id);
+  await persistirPersonas();
+  renderPersonas();
+}
+
+function flashCampo(id) {
+  const el = g(id);
+  if (!el) return;
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+}
+
+// Teste único: preenche placeholders na hora (não há pessoa específica).
+function aplicarPersonaUnico(id) {
+  const p = getPersona(id);
+  if (!p) return;
+  g('cenario').value = resolverCenarioPersona(p.cenario);
+  if (p.criterio) g('criterio').value = p.criterio;
+  flashCampo('cenario');
+  atualizarBotoesIniciar();
+}
+
+// Template do lote: mantém os placeholders — cada pessoa preenche o seu ao rodar.
+function aplicarPersonaLoteTemplate(id) {
+  const p = getPersona(id);
+  if (!p) return;
+  g('lote_template').value = p.cenario;
+  if (p.criterio) g('lote_criterio').value = p.criterio;
+  atualizarBotoesIniciar();
+}
+
+// Modal individual: há uma pessoa específica — preenche os placeholders com ela.
+function aplicarPersonaModal(id) {
+  const p = getPersona(id);
+  if (!p) return;
+  const pessoas = parsePessoas();
+  const pessoa = (indiceModalAtual !== null && pessoas[indiceModalAtual]) ? pessoas[indiceModalAtual] : null;
+  g('modal_cenario_texto').value = pessoa ? preencherTemplate(p.cenario, pessoa) : p.cenario;
+  if (p.criterio) g('modal_criterio_texto').value = p.criterio;
+}
+
+function exportarPersonas() {
+  if (!personas.length) { alert('Não há personas para exportar.'); return; }
+  const blob = new Blob([JSON.stringify(personas, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'personas-qa.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importarPersonas(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const arr = JSON.parse(reader.result);
+      if (!Array.isArray(arr)) throw new Error('formato');
+      const validas = arr.filter(p => p && p.nome && p.cenario).map(p => ({
+        id: novoIdPersona(),
+        nome: String(p.nome),
+        cenario: String(p.cenario),
+        criterio: p.criterio ? String(p.criterio) : ''
+      }));
+      if (!validas.length) { alert('Nenhuma persona válida encontrada no arquivo.'); return; }
+      personas = personas.concat(validas);
+      await persistirPersonas();
+      renderPersonas();
+      alert(validas.length + ' persona(s) importada(s).');
+    } catch (e) {
+      alert('Arquivo inválido. Selecione um JSON exportado por esta ferramenta.');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+// ---------- Autenticação (email + senha) ----------
+let authMode = 'login';
+let usuarioAtual = null;
+
+function setAuthMode(mode) {
+  authMode = mode;
+  g('auth-tab-login').classList.toggle('active', mode === 'login');
+  g('auth-tab-register').classList.toggle('active', mode === 'register');
+  g('auth-submit').textContent = mode === 'login' ? 'Entrar' : 'Criar conta';
+  g('auth-password').setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
+  g('auth-password-hint').style.display = mode === 'register' ? 'block' : 'none';
+  esconderAuthErro();
+}
+
+function mostrarAuthErro(msg) {
+  const el = g('auth-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function esconderAuthErro() { g('auth-error').classList.remove('show'); }
+
+async function submitAuth() {
+  const email = g('auth-email').value.trim();
+  const password = g('auth-password').value;
+  if (!email || !password) { mostrarAuthErro('Preencha email e senha.'); return; }
+  const btn = g('auth-submit');
+  btn.disabled = true;
+  esconderAuthErro();
+  const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+  try {
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      // Conta inexistente no login: leva para "Criar conta" já com o email preenchido.
+      if (data.code === 'no_account') {
+        setAuthMode('register');
+        mostrarAuthErro(data.erro || 'Crie uma conta para continuar.');
+      } else {
+        mostrarAuthErro(data.erro || 'Não foi possível continuar.');
+      }
+      btn.disabled = false;
+      return;
+    }
+    usuarioAtual = data.email;
+    await entrarNoApp();
+  } catch (e) {
+    mostrarAuthErro('Erro de conexão. Tente de novo.');
+  }
+  btn.disabled = false;
+}
+
+async function entrarNoApp() {
+  g('auth-overlay').style.display = 'none';
+  g('app-header').style.display = 'flex';
+  g('app-main').style.display = 'flex';
+  g('header-user').style.display = 'flex';
+  g('header-user-email').textContent = usuarioAtual || '';
+  g('auth-password').value = '';
+  await carregarPersonas();
+  renderPersonas();
+  atualizarBotoesIniciar();
+}
+
+function mostrarLogin() {
+  g('auth-overlay').style.display = 'flex';
+  g('app-header').style.display = 'none';
+  g('app-main').style.display = 'none';
+  g('header-user').style.display = 'none';
+}
+
+async function logout() {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+  usuarioAtual = null;
+  personas = [];
+  mostrarLogin();
+}
+
+async function verificarSessao() {
+  try {
+    const r = await fetch('/api/auth/me');
+    if (r.ok) {
+      const data = await r.json();
+      usuarioAtual = data.email;
+      await entrarNoApp();
+      return;
+    }
+  } catch (e) {}
+  mostrarLogin();
+}
+
+// Garante o estado correto dos botões "Iniciar" (autofill etc.) e decide, no load,
+// se mostra o app (sessão válida) ou a tela de login.
 atualizarBotoesIniciar();
+verificarSessao();
 </script>
 </body>
 </html>
