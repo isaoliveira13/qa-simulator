@@ -4,6 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ISA — QA Conversacional</title>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('isa_qa_tema');
+      var tema = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', tema);
+    } catch (e) {}
+  })();
+</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231a1a18'/%3E%3Cpath fill='white' d='M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm-1 11H9V8h2v7zm4 0h-2V8h2v7z'/%3E%3C/svg%3E" />
 <style>
   :root {
@@ -30,6 +39,29 @@
     --radius: 8px;
     --mono: 'Menlo', 'Consolas', monospace;
   }
+  [data-theme="dark"] {
+    --bg: #131221;
+    --surface: #1c1b2b;
+    --border: #2c2a40;
+    --border-strong: #3d3b56;
+    --text: #e8e7f2;
+    --text-secondary: #a8a5c2;
+    --text-muted: #726f8c;
+    --accent: #7c7ff7;
+    --accent-hover: #9497ff;
+    --accent-bg: #26264a;
+    --accent-text: #a9abff;
+    --success-bg: #0f2b22;
+    --success-text: #34d399;
+    --success-border: #1c5241;
+    --danger-bg: #2e1518;
+    --danger-text: #f87171;
+    --danger-border: #5c2529;
+    --warning-bg: #2e2410;
+    --warning-text: #fbbf24;
+    --warning-border: #5c481c;
+  }
+  html { transition: background .2s; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; gap: 12px; height: 56px; }
@@ -38,6 +70,12 @@
   header h1 { font-size: 15px; font-weight: 500; }
   header span { font-size: 13px; color: var(--text-muted); margin-left: 4px; }
   .env-picker { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .theme-toggle { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-secondary); cursor: pointer; transition: background .15s, color .15s, transform .15s, box-shadow .15s; }
+  .theme-toggle:hover { color: var(--accent-text); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 6px 14px rgba(99,102,241,.18); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+  .theme-toggle .icon-moon { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: block; }
   .env-picker label { font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
   .env-picker select { font-family: inherit; font-size: 13px; font-weight: 500; color: var(--accent-text); background: var(--accent-bg); border: 1px solid var(--border-strong); border-radius: 20px; padding: 6px 14px; cursor: pointer; outline: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
   .env-picker select:hover { border-color: var(--accent); box-shadow: 0 6px 14px rgba(99,102,241,.18); transform: translateY(-1px); }
@@ -197,6 +235,10 @@
       <option value="homolog">Homolog</option>
     </select>
   </div>
+  <button class="theme-toggle" id="theme_toggle" onclick="alternarTema()" title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
 </header>
 
 <div class="main">
@@ -405,6 +447,13 @@ const AMBIENTES_ZENTA = {
 };
 
 const WEBHOOK_URL_PADRAO = '/api/qa-conversacional-pai';
+
+function alternarTema() {
+  const atual = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const novo = atual === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', novo);
+  try { localStorage.setItem('isa_qa_tema', novo); } catch (e) {}
+}
 
 let timerInterval = null;
 let lastResult = null;
@@ -1098,7 +1147,7 @@ async function runPersonConversation(person, cardEl, overrides) {
   const hostSlug = g('host_slug').value.trim();
   const subSlug = g('sub_slug').value.trim();
   const maxTurnosRaw = g('max_turnos').value.trim();
-  const saudacao = g('saudacao').value.trim(); 
+  const saudacao = g('saudacao').value.trim();
 
   const ambiente = g('ambiente_zenta').value;
   const config = { host_slug: hostSlug, saudacao_inicial: saudacao, base_url: AMBIENTES_ZENTA[ambiente] || AMBIENTES_ZENTA.prod };
