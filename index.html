@@ -211,6 +211,11 @@
   .auth-tab.active { background: var(--surface); color: var(--accent-text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
   .auth-error { display: none; font-size: 12px; color: var(--danger-text); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 8px; padding: 8px 12px; }
   .auth-error.show { display: block; }
+  .auth-info { display: none; font-size: 12px; color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 8px; padding: 8px 12px; }
+  .auth-info.show { display: block; }
+  .auth-links { display: flex; justify-content: space-between; gap: 10px; margin-top: 2px; }
+  .auth-link { font-family: inherit; font-size: 12px; color: var(--accent-text); background: none; border: none; cursor: pointer; padding: 0; }
+  .auth-link:hover { text-decoration: underline; }
   .header-user { display: flex; align-items: center; gap: 10px; margin-left: 12px; }
   .header-user-email { font-size: 12px; color: var(--text-secondary); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .modal-header { display: flex; align-items: center; justify-content: space-between; }
@@ -259,23 +264,37 @@
     </div>
     <div>
       <div class="auth-title">ISA — QA Conversacional</div>
-      <div class="auth-sub">Entre para acessar suas personas e testes.</div>
+      <div class="auth-sub" id="auth-sub">Entre para acessar suas personas e testes.</div>
     </div>
-    <div class="auth-tabs">
+    <div class="auth-tabs" id="auth-tabs">
       <button type="button" class="auth-tab active" id="auth-tab-login" onclick="setAuthMode('login')">Entrar</button>
       <button type="button" class="auth-tab" id="auth-tab-register" onclick="setAuthMode('register')">Criar conta</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
-    <div class="field">
+    <div class="auth-info" id="auth-info"></div>
+    <div class="field" id="auth-field-email">
       <label>Email</label>
-      <input type="email" id="auth-email" autocomplete="username" placeholder="voce@zenta.to" onkeydown="if(event.key==='Enter')g('auth-password').focus()" />
+      <input type="email" id="auth-email" autocomplete="username" placeholder="voce@zenta.to" onkeydown="if(event.key==='Enter')submitAuth()" />
     </div>
-    <div class="field">
+    <div class="field" id="auth-field-password">
       <label>Senha</label>
       <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()" />
       <div class="hint" id="auth-password-hint" style="display:none">Mínimo de 8 caracteres.</div>
     </div>
+    <div class="field" id="auth-field-newpass" style="display:none">
+      <label>Nova senha</label>
+      <input type="password" id="auth-newpass" autocomplete="new-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')g('auth-confirm').focus()" />
+      <div class="hint">Mínimo de 8 caracteres.</div>
+    </div>
+    <div class="field" id="auth-field-confirm" style="display:none">
+      <label>Confirmar nova senha</label>
+      <input type="password" id="auth-confirm" autocomplete="new-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()" />
+    </div>
     <button class="btn-run" id="auth-submit" onclick="submitAuth()" style="justify-content:center">Entrar</button>
+    <div class="auth-links">
+      <button type="button" class="auth-link" id="auth-link-forgot" onclick="setAuthMode('forgot')">Esqueci minha senha</button>
+      <button type="button" class="auth-link" id="auth-link-back" style="display:none" onclick="voltarParaLogin()">Voltar para entrar</button>
+    </div>
   </div>
 </div>
 
@@ -1593,27 +1612,60 @@ function importarPersonas(ev) {
 }
 
 // ---------- Autenticação (email + senha) ----------
-let authMode = 'login';
+let authMode = 'login'; // 'login' | 'register' | 'forgot' | 'reset'
 let usuarioAtual = null;
+let resetToken = null;
 
 function setAuthMode(mode) {
   authMode = mode;
-  g('auth-tab-login').classList.toggle('active', mode === 'login');
-  g('auth-tab-register').classList.toggle('active', mode === 'register');
-  g('auth-submit').textContent = mode === 'login' ? 'Entrar' : 'Criar conta';
-  g('auth-password').setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
-  g('auth-password-hint').style.display = mode === 'register' ? 'block' : 'none';
+  const isLogin = mode === 'login', isRegister = mode === 'register', isForgot = mode === 'forgot', isReset = mode === 'reset';
+  g('auth-tabs').style.display = (isLogin || isRegister) ? 'flex' : 'none';
+  g('auth-tab-login').classList.toggle('active', isLogin);
+  g('auth-tab-register').classList.toggle('active', isRegister);
+  g('auth-field-email').style.display = isReset ? 'none' : 'flex';
+  g('auth-field-password').style.display = (isLogin || isRegister) ? 'flex' : 'none';
+  g('auth-field-newpass').style.display = isReset ? 'flex' : 'none';
+  g('auth-field-confirm').style.display = isReset ? 'flex' : 'none';
+  g('auth-password').setAttribute('autocomplete', isLogin ? 'current-password' : 'new-password');
+  g('auth-password-hint').style.display = isRegister ? 'block' : 'none';
+  g('auth-link-forgot').style.display = isLogin ? 'inline' : 'none';
+  g('auth-link-back').style.display = (isForgot || isReset) ? 'inline' : 'none';
+  g('auth-submit').textContent = { login: 'Entrar', register: 'Criar conta', forgot: 'Enviar link de redefinição', reset: 'Salvar nova senha' }[mode];
+  g('auth-sub').textContent = {
+    login: 'Entre para acessar suas personas e testes.',
+    register: 'Entre para acessar suas personas e testes.',
+    forgot: 'Digite seu email para receber um link de redefinição.',
+    reset: 'Defina uma nova senha para sua conta.'
+  }[mode];
   esconderAuthErro();
+  esconderAuthInfo();
+}
+
+function voltarParaLogin() {
+  // Limpa o token da URL (se veio de um link de redefinição) e volta ao login.
+  if (resetToken) { resetToken = null; history.replaceState(null, '', location.pathname); }
+  setAuthMode('login');
 }
 
 function mostrarAuthErro(msg) {
+  esconderAuthInfo();
   const el = g('auth-error');
   el.textContent = msg;
   el.classList.add('show');
 }
 function esconderAuthErro() { g('auth-error').classList.remove('show'); }
+function mostrarAuthInfo(msg) {
+  esconderAuthErro();
+  const el = g('auth-info');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function esconderAuthInfo() { g('auth-info').classList.remove('show'); }
 
 async function submitAuth() {
+  if (authMode === 'forgot') return submitForgot();
+  if (authMode === 'reset') return submitReset();
+
   const email = g('auth-email').value.trim();
   const password = g('auth-password').value;
   if (!email || !password) { mostrarAuthErro('Preencha email e senha.'); return; }
@@ -1641,6 +1693,52 @@ async function submitAuth() {
     }
     usuarioAtual = data.email;
     await entrarNoApp();
+  } catch (e) {
+    mostrarAuthErro('Erro de conexão. Tente de novo.');
+  }
+  btn.disabled = false;
+}
+
+async function submitForgot() {
+  const email = g('auth-email').value.trim();
+  if (!email) { mostrarAuthErro('Digite seu email.'); return; }
+  const btn = g('auth-submit');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/auth/forgot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await r.json().catch(() => ({}));
+    mostrarAuthInfo(data.mensagem || 'Se existe uma conta com esse email, enviamos um link para redefinir a senha.');
+  } catch (e) {
+    mostrarAuthErro('Erro de conexão. Tente de novo.');
+  }
+  btn.disabled = false;
+}
+
+async function submitReset() {
+  const p1 = g('auth-newpass').value;
+  const p2 = g('auth-confirm').value;
+  if (p1.length < 8) { mostrarAuthErro('A senha precisa ter ao menos 8 caracteres.'); return; }
+  if (p1 !== p2) { mostrarAuthErro('As senhas não conferem.'); return; }
+  const btn = g('auth-submit');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/auth/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: resetToken, password: p1 })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { mostrarAuthErro(data.erro || 'Não foi possível redefinir a senha.'); btn.disabled = false; return; }
+    g('auth-newpass').value = '';
+    g('auth-confirm').value = '';
+    resetToken = null;
+    history.replaceState(null, '', location.pathname);
+    setAuthMode('login');
+    mostrarAuthInfo('Senha redefinida com sucesso! Entre com a nova senha.');
   } catch (e) {
     mostrarAuthErro('Erro de conexão. Tente de novo.');
   }
@@ -1686,10 +1784,24 @@ async function verificarSessao() {
   mostrarLogin();
 }
 
+// Se a pessoa chegou por um link de redefinição (?reset_token=...), mostra
+// direto a tela de nova senha em vez de checar sessão.
+function iniciarAuth() {
+  const params = new URLSearchParams(location.search);
+  const t = params.get('reset_token');
+  if (t) {
+    resetToken = t;
+    mostrarLogin();
+    setAuthMode('reset');
+    return;
+  }
+  verificarSessao();
+}
+
 // Garante o estado correto dos botões "Iniciar" (autofill etc.) e decide, no load,
-// se mostra o app (sessão válida) ou a tela de login.
+// se mostra o app (sessão válida), a tela de login, ou a redefinição de senha.
 atualizarBotoesIniciar();
-verificarSessao();
+iniciarAuth();
 </script>
 </body>
 </html>
