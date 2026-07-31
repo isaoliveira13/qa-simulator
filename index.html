@@ -290,9 +290,15 @@
       <label>Confirmar nova senha</label>
       <input type="password" id="auth-confirm" autocomplete="new-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()" />
     </div>
+    <div class="field" id="auth-field-code" style="display:none">
+      <label>Código de confirmação</label>
+      <input type="text" id="auth-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 dígitos" onkeydown="if(event.key==='Enter')submitAuth()" />
+      <div class="hint">Enviamos um código de 6 dígitos para o seu email. Ele expira em 15 minutos.</div>
+    </div>
     <button class="btn-run" id="auth-submit" onclick="submitAuth()" style="justify-content:center">Entrar</button>
     <div class="auth-links">
       <button type="button" class="auth-link" id="auth-link-forgot" onclick="setAuthMode('forgot')">Esqueci minha senha</button>
+      <button type="button" class="auth-link" id="auth-link-resend" style="display:none" onclick="reenviarCodigo()">Reenviar código</button>
       <button type="button" class="auth-link" id="auth-link-back" style="display:none" onclick="voltarParaLogin()">Voltar para entrar</button>
     </div>
   </div>
@@ -1612,38 +1618,45 @@ function importarPersonas(ev) {
 }
 
 // ---------- Autenticação (email + senha) ----------
-let authMode = 'login'; // 'login' | 'register' | 'forgot' | 'reset'
+let authMode = 'login'; // 'login' | 'register' | 'forgot' | 'reset' | 'verify'
 let usuarioAtual = null;
 let resetToken = null;
+let pendingEmail = null;
+let pendingPassword = null;
 
 function setAuthMode(mode) {
   authMode = mode;
-  const isLogin = mode === 'login', isRegister = mode === 'register', isForgot = mode === 'forgot', isReset = mode === 'reset';
+  const isLogin = mode === 'login', isRegister = mode === 'register', isForgot = mode === 'forgot', isReset = mode === 'reset', isVerify = mode === 'verify';
   g('auth-tabs').style.display = (isLogin || isRegister) ? 'flex' : 'none';
   g('auth-tab-login').classList.toggle('active', isLogin);
   g('auth-tab-register').classList.toggle('active', isRegister);
-  g('auth-field-email').style.display = isReset ? 'none' : 'flex';
+  g('auth-field-email').style.display = (isLogin || isRegister || isForgot) ? 'flex' : 'none';
   g('auth-field-password').style.display = (isLogin || isRegister) ? 'flex' : 'none';
   g('auth-field-newpass').style.display = isReset ? 'flex' : 'none';
   g('auth-field-confirm').style.display = isReset ? 'flex' : 'none';
+  g('auth-field-code').style.display = isVerify ? 'flex' : 'none';
   g('auth-password').setAttribute('autocomplete', isLogin ? 'current-password' : 'new-password');
   g('auth-password-hint').style.display = isRegister ? 'block' : 'none';
   g('auth-link-forgot').style.display = isLogin ? 'inline' : 'none';
-  g('auth-link-back').style.display = (isForgot || isReset) ? 'inline' : 'none';
-  g('auth-submit').textContent = { login: 'Entrar', register: 'Criar conta', forgot: 'Enviar link de redefinição', reset: 'Salvar nova senha' }[mode];
+  g('auth-link-resend').style.display = isVerify ? 'inline' : 'none';
+  g('auth-link-back').style.display = (isForgot || isReset || isVerify) ? 'inline' : 'none';
+  g('auth-submit').textContent = { login: 'Entrar', register: 'Criar conta', forgot: 'Enviar link de redefinição', reset: 'Salvar nova senha', verify: 'Confirmar código' }[mode];
   g('auth-sub').textContent = {
     login: 'Entre para acessar suas personas e testes.',
     register: 'Entre para acessar suas personas e testes.',
     forgot: 'Digite seu email para receber um link de redefinição.',
-    reset: 'Defina uma nova senha para sua conta.'
+    reset: 'Defina uma nova senha para sua conta.',
+    verify: 'Confirme seu email com o código que enviamos.'
   }[mode];
   esconderAuthErro();
   esconderAuthInfo();
 }
 
 function voltarParaLogin() {
-  // Limpa o token da URL (se veio de um link de redefinição) e volta ao login.
+  // Limpa estados temporários (token de reset ou cadastro pendente) e volta ao login.
   if (resetToken) { resetToken = null; history.replaceState(null, '', location.pathname); }
+  pendingEmail = null;
+  pendingPassword = null;
   setAuthMode('login');
 }
 
@@ -1665,6 +1678,7 @@ function esconderAuthInfo() { g('auth-info').classList.remove('show'); }
 async function submitAuth() {
   if (authMode === 'forgot') return submitForgot();
   if (authMode === 'reset') return submitReset();
+  if (authMode === 'verify') return submitVerify();
 
   const email = g('auth-email').value.trim();
   const password = g('auth-password').value;
@@ -1691,12 +1705,68 @@ async function submitAuth() {
       btn.disabled = false;
       return;
     }
+    // Cadastro: não cria a conta ainda — vai para o passo do código.
+    if (authMode === 'register' && data.pending) {
+      pendingEmail = data.email || email;
+      pendingPassword = password; // guardado só em memória, para reenviar o código
+      setAuthMode('verify');
+      g('auth-code').value = '';
+      mostrarAuthInfo('Enviamos um código de 6 dígitos para ' + pendingEmail + '. Digite-o abaixo para concluir o cadastro.');
+      btn.disabled = false;
+      return;
+    }
+    // Login: entra direto.
     usuarioAtual = data.email;
     await entrarNoApp();
   } catch (e) {
     mostrarAuthErro('Erro de conexão. Tente de novo.');
   }
   btn.disabled = false;
+}
+
+async function submitVerify() {
+  const code = g('auth-code').value.trim();
+  if (!/^\d{6}$/.test(code)) { mostrarAuthErro('Digite o código de 6 dígitos.'); return; }
+  const btn = g('auth-submit');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingEmail, code })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { mostrarAuthErro(data.erro || 'Não foi possível confirmar.'); btn.disabled = false; return; }
+    pendingEmail = null;
+    pendingPassword = null;
+    usuarioAtual = data.email;
+    await entrarNoApp();
+  } catch (e) {
+    mostrarAuthErro('Erro de conexão. Tente de novo.');
+  }
+  btn.disabled = false;
+}
+
+async function reenviarCodigo() {
+  if (!pendingEmail || !pendingPassword) { mostrarAuthErro('Faça o cadastro novamente.'); setAuthMode('register'); return; }
+  const link = g('auth-link-resend');
+  link.disabled = true;
+  try {
+    const r = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingEmail, password: pendingPassword })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.pending) {
+      mostrarAuthInfo('Enviamos um novo código para ' + pendingEmail + '.');
+    } else {
+      mostrarAuthErro(data.erro || 'Não foi possível reenviar o código.');
+    }
+  } catch (e) {
+    mostrarAuthErro('Erro de conexão. Tente de novo.');
+  }
+  link.disabled = false;
 }
 
 async function submitForgot() {
