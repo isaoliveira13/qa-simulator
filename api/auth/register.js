@@ -1,8 +1,10 @@
-// POST { email, password } -> cria a conta, já autentica (cookie de sessão) e
-// devolve { email }. Opcional: ALLOWED_EMAIL_DOMAIN restringe quem pode cadastrar.
-const { getUser, createUser, createSession, normalizeEmail, SESSION_TTL } = require('../../lib/authStore');
+// POST { email, password } -> NÃO cria a conta ainda. Valida, guarda um cadastro
+// pendente e envia um código de 6 dígitos para o email (prova de posse). A conta
+// só é criada em /api/auth/verify, depois que a pessoa digita o código certo.
+// ALLOWED_EMAIL_DOMAIN restringe quem pode se cadastrar (ex.: zenta.to).
+const { getUser, createPendingRegistration, normalizeEmail } = require('../../lib/authStore');
 const { hashPassword } = require('../../lib/passwords');
-const { setSessionCookie } = require('../../lib/authHttp');
+const { sendEmail } = require('../../lib/email');
 
 const ALLOWED_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || '').trim().toLowerCase();
 
@@ -27,13 +29,22 @@ module.exports = async function handler(req, res) {
     if (existing) return res.status(409).json({ erro: 'Já existe uma conta com esse email. Faça login.' });
 
     const passwordHash = await hashPassword(password);
-    await createUser(email, passwordHash);
+    const code = await createPendingRegistration(email, passwordHash);
 
-    const token = await createSession(email);
-    setSessionCookie(res, token, SESSION_TTL);
-    return res.status(200).json({ email });
+    await sendEmail({
+      to: email,
+      subject: 'Seu código de confirmação — ISA QA',
+      text: 'Seu código de confirmação é: ' + code + '\n\nDigite-o na tela de cadastro para concluir. O código expira em 15 minutos.\n\nSe não foi você, ignore este email.',
+      html: '<p>Seu código de confirmação no <strong>ISA QA</strong> é:</p>' +
+            '<p style="font-size:26px;font-weight:700;letter-spacing:4px">' + code + '</p>' +
+            '<p>Digite-o na tela de cadastro para concluir. O código expira em 15 minutos.</p>' +
+            '<p>Se não foi você, ignore este email.</p>'
+    });
+
+    // Sempre 200 com pending:true — não revela se o email já tinha cadastro pendente.
+    return res.status(200).json({ pending: true, email });
   } catch (e) {
     console.error('[auth/register]', e && e.stack ? e.stack : e);
-    return res.status(500).json({ erro: 'Erro ao criar conta.' });
+    return res.status(500).json({ erro: 'Erro ao iniciar o cadastro.' });
   }
 };
