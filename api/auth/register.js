@@ -2,11 +2,15 @@
 // pendente e envia um código de 6 dígitos para o email (prova de posse). A conta
 // só é criada em /api/auth/verify, depois que a pessoa digita o código certo.
 // ALLOWED_EMAIL_DOMAIN restringe quem pode se cadastrar (ex.: zenta.to).
-const { getUser, createPendingRegistration, normalizeEmail } = require('../../lib/authStore');
+const { getUser, createPendingRegistration, deletePendingRegistration, normalizeEmail } = require('../../lib/authStore');
 const { hashPassword } = require('../../lib/passwords');
 const { sendEmail } = require('../../lib/email');
 
-const ALLOWED_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || '').trim().toLowerCase();
+// Domínio permitido para cadastro. Padrão zenta.to: mesmo sem a env var definida,
+// só emails @zenta.to conseguem criar conta. Para liberar geral, defina
+// ALLOWED_EMAIL_DOMAIN='*' (não recomendado em produção).
+const RAW_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || 'zenta.to').trim().toLowerCase();
+const ALLOWED_DOMAIN = RAW_DOMAIN === '*' ? '' : RAW_DOMAIN;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Use POST.' });
@@ -31,7 +35,7 @@ module.exports = async function handler(req, res) {
     const passwordHash = await hashPassword(password);
     const code = await createPendingRegistration(email, passwordHash);
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: email,
       subject: 'Seu código de confirmação — ISA QA',
       text: 'Seu código de confirmação é: ' + code + '\n\nDigite-o na tela de cadastro para concluir. O código expira em 15 minutos.\n\nSe não foi você, ignore este email.',
@@ -41,7 +45,16 @@ module.exports = async function handler(req, res) {
             '<p>Se não foi você, ignore este email.</p>'
     });
 
-    // Sempre 200 com pending:true — não revela se o email já tinha cadastro pendente.
+    // Se o email não saiu, não deixa um cadastro pendente órfão (a pessoa nunca
+    // receberia o código). Limpa o pending e devolve erro claro em vez de fingir
+    // que deu certo com 200.
+    if (!emailResult || !emailResult.sent) {
+      await deletePendingRegistration(email);
+      console.error('[auth/register] email de confirmação não enviado:', emailResult && emailResult.reason);
+      return res.status(502).json({ erro: 'Não foi possível enviar o email de confirmação agora. Tente novamente em instantes.' });
+    }
+
+    // 200 com pending:true — não revela se o email já tinha cadastro pendente.
     return res.status(200).json({ pending: true, email });
   } catch (e) {
     console.error('[auth/register]', e && e.stack ? e.stack : e);
