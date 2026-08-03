@@ -649,9 +649,29 @@
     </div>
   </div>
   <div class="field">
+    <label>Dados da pessoa <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+    <div class="hint" style="margin-top:-4px">Preencha os dados reais que essa persona deve usar. Campo em branco é preenchido com um dado fictício ao adicionar a persona ao lote (menos o "campo adicional", que fica em branco se não for preenchido).</div>
+    <div class="grid2">
+      <input type="text" id="modal_persona_cpf" placeholder="CPF (ex.: 123.456.789-00)" />
+      <input type="text" id="modal_persona_telefone" placeholder="Telefone (ex.: (11) 91234-5678)" />
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <input type="text" id="modal_persona_genero" placeholder="Gênero (ex.: masculino, feminino)" />
+      <input type="text" id="modal_persona_email" placeholder="Email" />
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <input type="text" id="modal_persona_nascimento" placeholder="Nascimento (DD/MM/AAAA)" />
+      <input type="text" id="modal_persona_cidade" placeholder="Cidade/UF" />
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <input type="text" id="modal_persona_campo_extra_nome" placeholder="Nome do campo adicional (ex.: profissão)" maxlength="60" />
+      <input type="text" id="modal_persona_campo_extra_valor" placeholder="Valor (ex.: motorista de aplicativo)" maxlength="300" />
+    </div>
+  </div>
+  <div class="field">
     <label>Cenário</label>
     <textarea id="modal_persona_cenario" rows="5" placeholder="Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte..."></textarea>
-    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} — preenchidos automaticamente com dados fictícios ao aplicar.</div>
+    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} {campo_extra_nome} {campo_extra_valor} — preenchidos com os dados cadastrados acima (ou fictícios, para o que ficar em branco) ao adicionar ao lote.</div>
   </div>
   <div class="field">
     <label>Critério de sucesso (opcional)</label>
@@ -839,6 +859,26 @@ function renderLotePersonasPicker() {
   });
 }
 
+// Monta a "pessoa" que vai para a linha do lote a partir dos dados REAIS
+// cadastrados na persona. Só recorre a um dado fictício para preencher o que
+// a persona deixou em branco — nunca troca um dado que o usuário cadastrou.
+// (O "campo adicional" não tem um gerador fictício sensato, então fica em
+// branco se a persona não tiver preenchido.)
+function montarPessoaDaPersona(persona) {
+  const fallback = gerarPessoaFicticia();
+  return {
+    nome: persona.nome || fallback.nome,
+    cpf: persona.cpf || fallback.cpf,
+    telefone: persona.telefone || fallback.telefone,
+    genero: persona.genero || fallback.genero,
+    email: persona.email || fallback.email,
+    nascimento: persona.nascimento || fallback.nascimento,
+    cidade: persona.cidade || fallback.cidade,
+    campoExtraNome: persona.campoExtraNome || '',
+    campoExtraValor: persona.campoExtraValor || ''
+  };
+}
+
 function adicionarPersonasSelecionadasAoLote() {
   if (!lotePersonasSelecionadas.length) { alert('Selecione ao menos uma persona para adicionar ao lote.'); return; }
   const linhasAtuais = linhasAtuaisDoLote();
@@ -847,11 +887,11 @@ function adicionarPersonasSelecionadasAoLote() {
   lotePersonasSelecionadas.forEach(id => {
     const persona = getPersona(id);
     if (!persona) return;
-    const pessoaFicticia = gerarPessoaFicticia();
+    const pessoa = montarPessoaDaPersona(persona);
     const indice = linhasAtuais.length + novasLinhas.length;
-    novasLinhas.push(linhaDePessoa(pessoaFicticia));
+    novasLinhas.push(linhaDePessoa(pessoa));
     novosCenarios[indice] = {
-      cenario: preencherTemplate(persona.cenario, pessoaFicticia),
+      cenario: preencherTemplate(persona.cenario, pessoa),
       criterio: persona.criterio || ''
     };
   });
@@ -1274,7 +1314,7 @@ function gerarCenarioPessoaFicticia() {
 }
 
 function linhaDePessoa(p) {
-  return [p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade].join(';');
+  return [p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade, p.campoExtraNome || '', p.campoExtraValor || ''].join(';');
 }
 
 function linhasAtuaisDoLote() {
@@ -1370,20 +1410,22 @@ function parsePessoas() {
   const raw = g('lote_pessoas').value.trim();
   if (!raw) return [];
   return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-    const [nome, cpf, telefone, genero, email, nascimento, cidade] = line.split(';').map(s => (s || '').trim());
-    return { nome: nome || 'Pessoa', cpf: cpf || '', telefone: telefone || '', genero: genero || '', email: email || '', nascimento: nascimento || '', cidade: cidade || '' };
+    const [nome, cpf, telefone, genero, email, nascimento, cidade, campoExtraNome, campoExtraValor] = line.split(';').map(s => (s || '').trim());
+    return { nome: nome || 'Pessoa', cpf: cpf || '', telefone: telefone || '', genero: genero || '', email: email || '', nascimento: nascimento || '', cidade: cidade || '', campoExtraNome: campoExtraNome || '', campoExtraValor: campoExtraValor || '' };
   });
 }
 
 function preencherTemplate(template, p) {
   return template
-    .replaceAll('{nome}', p.nome)
-    .replaceAll('{cpf}', p.cpf)
-    .replaceAll('{telefone}', p.telefone)
-    .replaceAll('{genero}', p.genero)
-    .replaceAll('{email}', p.email)
-    .replaceAll('{nascimento}', p.nascimento)
-    .replaceAll('{cidade}', p.cidade);
+    .replaceAll('{nome}', p.nome || '')
+    .replaceAll('{cpf}', p.cpf || '')
+    .replaceAll('{telefone}', p.telefone || '')
+    .replaceAll('{genero}', p.genero || '')
+    .replaceAll('{email}', p.email || '')
+    .replaceAll('{nascimento}', p.nascimento || '')
+    .replaceAll('{cidade}', p.cidade || '')
+    .replaceAll('{campo_extra_nome}', p.campoExtraNome || '')
+    .replaceAll('{campo_extra_valor}', p.campoExtraValor || '');
 }
 
 function criarLoteCard(pessoa) {
@@ -1909,6 +1951,14 @@ function abrirModalPersona(id) {
   g('modal_persona_nome').value = p ? p.nome : '';
   g('modal_persona_cenario').value = p ? p.cenario : '';
   g('modal_persona_criterio').value = p ? (p.criterio || '') : '';
+  g('modal_persona_cpf').value = p ? (p.cpf || '') : '';
+  g('modal_persona_telefone').value = p ? (p.telefone || '') : '';
+  g('modal_persona_genero').value = p ? (p.genero || '') : '';
+  g('modal_persona_email').value = p ? (p.email || '') : '';
+  g('modal_persona_nascimento').value = p ? (p.nascimento || '') : '';
+  g('modal_persona_cidade').value = p ? (p.cidade || '') : '';
+  g('modal_persona_campo_extra_nome').value = p ? (p.campoExtraNome || '') : '';
+  g('modal_persona_campo_extra_valor').value = p ? (p.campoExtraValor || '') : '';
   modalPersonaFotoAtual = p && p.foto ? p.foto : '';
   modalPersonaTagsSelecionadas = p && Array.isArray(p.tags) ? p.tags.slice() : [];
   g('modal_persona_tag_novo').value = '';
@@ -1934,11 +1984,20 @@ async function salvarPersona() {
   if (!cenario) { g('modal_persona_cenario').focus(); return; }
   const foto = modalPersonaFotoAtual || '';
   const tags = modalPersonaTagsSelecionadas.slice();
+  const cpf = g('modal_persona_cpf').value.trim();
+  const telefone = g('modal_persona_telefone').value.trim();
+  const genero = g('modal_persona_genero').value.trim();
+  const email = g('modal_persona_email').value.trim();
+  const nascimento = g('modal_persona_nascimento').value.trim();
+  const cidade = g('modal_persona_cidade').value.trim();
+  const campoExtraNome = g('modal_persona_campo_extra_nome').value.trim();
+  const campoExtraValor = g('modal_persona_campo_extra_valor').value.trim();
+  const dadosPessoa = { cpf, telefone, genero, email, nascimento, cidade, campoExtraNome, campoExtraValor };
   if (personaEditandoId) {
     const p = getPersona(personaEditandoId);
-    if (p) { p.nome = nome; p.cenario = cenario; p.criterio = criterio; p.foto = foto; p.tags = tags; }
+    if (p) { p.nome = nome; p.cenario = cenario; p.criterio = criterio; p.foto = foto; p.tags = tags; Object.assign(p, dadosPessoa); }
   } else {
-    personas.push({ id: novoIdPersona(), nome, cenario, criterio, foto, tags });
+    personas.push({ id: novoIdPersona(), nome, cenario, criterio, foto, tags, ...dadosPessoa });
   }
   fecharModalPersona();
   await persistirPersonas();
