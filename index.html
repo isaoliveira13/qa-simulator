@@ -649,8 +649,11 @@
     </div>
   </div>
   <div class="field">
-    <label>Dados da pessoa <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-    <div class="hint" style="margin-top:-4px">Preencha os dados reais que essa persona deve usar. Campo em branco é preenchido com um dado fictício ao adicionar a persona ao lote (menos o "campo adicional", que fica em branco se não for preenchido).</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <label style="margin:0">Dados da pessoa <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+      <button type="button" class="btn-secondary" style="font-size:12px;padding:5px 10px" onclick="gerarDadosFicticiosPersona()">Gerar dados fictícios</button>
+    </div>
+    <div class="hint" style="margin-top:-4px">Preencha os dados reais que essa persona deve usar, ou clique em "Gerar dados fictícios" para preencher tudo automaticamente (menos o campo adicional, que é seu).</div>
     <div class="grid2">
       <input type="text" id="modal_persona_cpf" placeholder="CPF (ex.: 123.456.789-00)" />
       <input type="text" id="modal_persona_telefone" placeholder="Telefone (ex.: (11) 91234-5678)" />
@@ -663,20 +666,30 @@
       <input type="text" id="modal_persona_nascimento" placeholder="Nascimento (DD/MM/AAAA)" />
       <input type="text" id="modal_persona_cidade" placeholder="Cidade/UF" />
     </div>
-    <div class="grid2" style="margin-top:8px">
-      <input type="text" id="modal_persona_campo_extra_nome" placeholder="Nome do campo adicional (ex.: profissão)" maxlength="60" />
-      <input type="text" id="modal_persona_campo_extra_valor" placeholder="Valor (ex.: motorista de aplicativo)" maxlength="300" />
+    <input type="text" id="modal_persona_campo_extra" style="margin-top:8px" placeholder='Campo adicional — ex.: "Profissão: motorista de aplicativo"' maxlength="360" />
+    <div class="hint" style="margin-top:2px">Formato livre "nome do campo: valor". Vira os placeholders {campo_extra_nome} e {campo_extra_valor} no cenário.</div>
+    <div style="margin-top:10px">
+      <label style="font-weight:400;font-size:12px;color:var(--text-muted)">Se um desses campos ficar em branco ao adicionar esta persona a um lote:</label>
+      <div style="display:flex;gap:16px;margin-top:6px;font-size:13px">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="radio" name="modal_persona_fallback" id="modal_persona_fallback_ficticio" value="ficticio" checked /> Inventar dado fictício
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="radio" name="modal_persona_fallback" id="modal_persona_fallback_vazio" value="vazio" /> Deixar em branco
+        </label>
+      </div>
     </div>
   </div>
   <div class="field">
     <label>Cenário</label>
     <textarea id="modal_persona_cenario" rows="5" placeholder="Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte..."></textarea>
-    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} {campo_extra_nome} {campo_extra_valor} — preenchidos com os dados cadastrados acima (ou fictícios, para o que ficar em branco) ao adicionar ao lote.</div>
+    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} {campo_extra_nome} {campo_extra_valor} — preenchidos com os dados cadastrados acima (ou fictícios, conforme a opção escolhida acima) ao adicionar ao lote.</div>
   </div>
   <div class="field">
     <label>Critério de sucesso (opcional)</label>
     <textarea id="modal_persona_criterio" rows="3"></textarea>
   </div>
+  <div class="hint" id="modal_persona_erro" style="display:none;color:var(--danger-text);margin-top:-6px;font-weight:500"></div>
   <div class="actions">
     <button type="button" class="btn-run" onclick="salvarPersona()">Salvar persona</button>
     <button type="button" class="btn-secondary" onclick="fecharModalPersona()">Cancelar</button>
@@ -861,19 +874,25 @@ function renderLotePersonasPicker() {
 
 // Monta a "pessoa" que vai para a linha do lote a partir dos dados REAIS
 // cadastrados na persona. Só recorre a um dado fictício para preencher o que
-// a persona deixou em branco — nunca troca um dado que o usuário cadastrou.
-// (O "campo adicional" não tem um gerador fictício sensato, então fica em
-// branco se a persona não tiver preenchido.)
+// a persona deixou em branco — nunca troca um dado que o usuário cadastrou —
+// e só faz isso se a própria persona escolheu essa opção (campo
+// fallbackDadosPessoa, escolhido pelo usuário no cadastro da persona; padrão
+// é "ficticio" para manter o comportamento de antes). Se a persona escolheu
+// "vazio", o que não foi preenchido fica em branco mesmo.
+// O "campo adicional" nunca tem um dado fictício gerado pra ele, de qualquer
+// forma — não haveria como inventar algo plausível pra um campo livre.
 function montarPessoaDaPersona(persona) {
-  const fallback = gerarPessoaFicticia();
+  const usarFicticio = persona.fallbackDadosPessoa !== 'vazio';
+  const fallback = usarFicticio ? gerarPessoaFicticia() : null;
+  const comFallback = (valor, chave) => valor || (fallback ? fallback[chave] : '');
   return {
-    nome: persona.nome || fallback.nome,
-    cpf: persona.cpf || fallback.cpf,
-    telefone: persona.telefone || fallback.telefone,
-    genero: persona.genero || fallback.genero,
-    email: persona.email || fallback.email,
-    nascimento: persona.nascimento || fallback.nascimento,
-    cidade: persona.cidade || fallback.cidade,
+    nome: persona.nome || (fallback ? fallback.nome : ''),
+    cpf: comFallback(persona.cpf, 'cpf'),
+    telefone: comFallback(persona.telefone, 'telefone'),
+    genero: comFallback(persona.genero, 'genero'),
+    email: comFallback(persona.email, 'email'),
+    nascimento: comFallback(persona.nascimento, 'nascimento'),
+    cidade: comFallback(persona.cidade, 'cidade'),
     campoExtraNome: persona.campoExtraNome || '',
     campoExtraValor: persona.campoExtraValor || ''
   };
@@ -1957,8 +1976,11 @@ function abrirModalPersona(id) {
   g('modal_persona_email').value = p ? (p.email || '') : '';
   g('modal_persona_nascimento').value = p ? (p.nascimento || '') : '';
   g('modal_persona_cidade').value = p ? (p.cidade || '') : '';
-  g('modal_persona_campo_extra_nome').value = p ? (p.campoExtraNome || '') : '';
-  g('modal_persona_campo_extra_valor').value = p ? (p.campoExtraValor || '') : '';
+  g('modal_persona_campo_extra').value = p ? combinarCampoExtra(p.campoExtraNome, p.campoExtraValor) : '';
+  g('modal_persona_fallback_vazio').checked = !!(p && p.fallbackDadosPessoa === 'vazio');
+  g('modal_persona_fallback_ficticio').checked = !(p && p.fallbackDadosPessoa === 'vazio');
+  g('modal_persona_erro').style.display = 'none';
+  g('modal_persona_erro').textContent = '';
   modalPersonaFotoAtual = p && p.foto ? p.foto : '';
   modalPersonaTagsSelecionadas = p && Array.isArray(p.tags) ? p.tags.slice() : [];
   g('modal_persona_tag_novo').value = '';
@@ -1969,6 +1991,41 @@ function abrirModalPersona(id) {
   g('modal_persona_nome').focus();
 }
 
+// "Nome do campo" e "valor" do campo adicional viviam em 2 inputs sem relação
+// visual óbvia entre si — unificados num único input no formato "nome: valor".
+function combinarCampoExtra(nome, valor) {
+  if (nome && valor) return nome + ': ' + valor;
+  if (valor) return valor;
+  if (nome) return nome + ':';
+  return '';
+}
+
+function parsearCampoExtra(texto) {
+  const t = (texto || '').trim();
+  if (!t) return { nome: '', valor: '' };
+  const idx = t.indexOf(':');
+  if (idx === -1) return { nome: '', valor: t };
+  return { nome: t.slice(0, idx).trim(), valor: t.slice(idx + 1).trim() };
+}
+
+// Preenche só os campos de dados "padrão" da pessoa (não mexe no campo
+// adicional, que é de autoria do usuário, nem no nome da persona).
+function gerarDadosFicticiosPersona() {
+  const f = gerarPessoaFicticia();
+  g('modal_persona_cpf').value = f.cpf;
+  g('modal_persona_telefone').value = f.telefone;
+  g('modal_persona_genero').value = f.genero;
+  g('modal_persona_email').value = f.email;
+  g('modal_persona_nascimento').value = f.nascimento;
+  g('modal_persona_cidade').value = f.cidade;
+}
+
+function mostrarErroPersona(msg) {
+  const el = g('modal_persona_erro');
+  el.textContent = msg;
+  el.style.display = '';
+}
+
 function fecharModalPersona() {
   g('modal-persona').close();
   personaEditandoId = null;
@@ -1977,11 +2034,12 @@ function fecharModalPersona() {
 }
 
 async function salvarPersona() {
+  g('modal_persona_erro').style.display = 'none';
   const nome = g('modal_persona_nome').value.trim();
   const cenario = g('modal_persona_cenario').value.trim();
   const criterio = g('modal_persona_criterio').value.trim();
-  if (!nome) { g('modal_persona_nome').focus(); return; }
-  if (!cenario) { g('modal_persona_cenario').focus(); return; }
+  if (!nome) { mostrarErroPersona('Preencha o nome da persona antes de salvar.'); g('modal_persona_nome').focus(); return; }
+  if (!cenario) { mostrarErroPersona('Preencha o cenário antes de salvar.'); g('modal_persona_cenario').focus(); return; }
   const foto = modalPersonaFotoAtual || '';
   const tags = modalPersonaTagsSelecionadas.slice();
   const cpf = g('modal_persona_cpf').value.trim();
@@ -1990,9 +2048,9 @@ async function salvarPersona() {
   const email = g('modal_persona_email').value.trim();
   const nascimento = g('modal_persona_nascimento').value.trim();
   const cidade = g('modal_persona_cidade').value.trim();
-  const campoExtraNome = g('modal_persona_campo_extra_nome').value.trim();
-  const campoExtraValor = g('modal_persona_campo_extra_valor').value.trim();
-  const dadosPessoa = { cpf, telefone, genero, email, nascimento, cidade, campoExtraNome, campoExtraValor };
+  const { nome: campoExtraNome, valor: campoExtraValor } = parsearCampoExtra(g('modal_persona_campo_extra').value);
+  const fallbackDadosPessoa = g('modal_persona_fallback_vazio').checked ? 'vazio' : 'ficticio';
+  const dadosPessoa = { cpf, telefone, genero, email, nascimento, cidade, campoExtraNome, campoExtraValor, fallbackDadosPessoa };
   if (personaEditandoId) {
     const p = getPersona(personaEditandoId);
     if (p) { p.nome = nome; p.cenario = cenario; p.criterio = criterio; p.foto = foto; p.tags = tags; Object.assign(p, dadosPessoa); }
