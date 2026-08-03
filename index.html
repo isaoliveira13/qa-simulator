@@ -407,6 +407,11 @@
           <input type="file" id="persona-import-input" accept="application/json,.json" style="display:none" onchange="importarPersonas(event)" />
         </div>
       </div>
+      <div class="persona-toolbar">
+        <input type="text" id="persona_busca" placeholder="Buscar por nome…" oninput="renderPersonas()" style="flex:1; min-width:160px; font-family:inherit; font-size:13px; color:var(--text); background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:7px 12px; outline:none;" />
+        <button class="btn-secondary" type="button" id="persona-filtro-btn" onclick="abrirModalFiltroEtiquetas()">Filtrar por etiqueta<span id="persona-filtro-badge" class="persona-badge" style="display:none; margin-left:6px"></span></button>
+        <button class="btn-secondary btn-danger-ghost" type="button" id="persona-filtro-limpar" onclick="limparFiltroEtiquetas()" style="display:none">Limpar filtro</button>
+      </div>
       <div class="hint" style="margin-top:-4px">Cenários salvos e reutilizáveis. Ex.: "Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte." Use nos testes único e em lote. O texto pode usar os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}, preenchidos automaticamente com dados fictícios.</div>
       <div id="persona-lista" class="persona-lista"></div>
     </div>
@@ -510,6 +515,14 @@
           <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="3" min="1" max="30" disabled /></span>
         </div>
         <div class="hint" style="margin-top:-8px">Com "Máx. simultâneos = qtd. gerada" ativado, o máximo de simultâneos acompanha automaticamente o número de pessoas geradas; desative para definir um valor independente. Cada chamada já tenta de novo automaticamente (3x) em caso de falha transitória — se muitas pessoas derem erro ao mesmo tempo, reduzir o "Máx. simultâneos" pode ajudar.</div>
+        <div class="lote-controls" style="margin-top:4px">
+          <span class="lote-num-label" style="margin:0">Usar personas salvas — cada uma vira uma pessoa do lote, já com seu próprio cenário</span>
+        </div>
+        <div class="tag-picker-list" id="lote_personas_picker" style="margin:0"></div>
+        <div class="hint" id="lote_personas_vazio" style="margin-top:-4px; display:none">Nenhuma persona salva ainda — crie personas na seção "Personas" acima para poder usá-las aqui.</div>
+        <div class="lote-controls">
+          <button class="btn-secondary" type="button" onclick="adicionarPersonasSelecionadasAoLote()">+ Adicionar personas selecionadas ao lote</button>
+        </div>
         <div class="lote-connector">↓ gera e adiciona na lista abaixo ↓</div>
         <div class="field">
           <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
@@ -632,7 +645,7 @@
     <div class="tag-vazio" id="modal_persona_tags_vazio" style="display:none">Nenhuma etiqueta criada ainda. Crie a primeira abaixo.</div>
     <div class="tag-add-row">
       <input type="text" id="modal_persona_tag_novo" placeholder="Ex.: estudante de medicina" maxlength="60" onkeydown="if(event.key==='Enter'){event.preventDefault(); criarEtiquetaPersona();}" />
-      <button type="button" class="btn-secondary" onclick="criarEtiquetaPersona()">+ Etiqueta</button>
+      <button type="button" class="btn-secondary" onclick="criarEtiquetaPersona()">Adicionar etiqueta</button>
     </div>
   </div>
   <div class="field">
@@ -647,6 +660,23 @@
   <div class="actions">
     <button type="button" class="btn-run" onclick="salvarPersona()">Salvar persona</button>
     <button type="button" class="btn-secondary" onclick="fecharModalPersona()">Cancelar</button>
+  </div>
+</dialog>
+
+<dialog id="modal-filtro-etiquetas">
+  <div class="modal-header">
+    <h3>Filtrar por etiqueta</h3>
+    <button type="button" class="modal-close" onclick="fecharModalFiltroEtiquetas()" aria-label="Fechar">&times;</button>
+  </div>
+  <div class="field">
+    <div class="hint" style="margin-top:0">Mostra só as personas que tiverem pelo menos uma das etiquetas marcadas abaixo.</div>
+    <div class="tag-picker-list" id="filtro_etiquetas_lista"></div>
+    <div class="tag-vazio" id="filtro_etiquetas_vazio" style="display:none">Nenhuma etiqueta criada ainda.</div>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn-run" onclick="aplicarFiltroEtiquetas()">Aplicar filtro</button>
+    <button type="button" class="btn-secondary" onclick="limparFiltroEtiquetas()">Limpar</button>
+    <button type="button" class="btn-secondary" onclick="fecharModalFiltroEtiquetas()">Cancelar</button>
   </div>
 </dialog>
 
@@ -778,6 +808,65 @@ function salvarCenarioIndividual() {
   };
   fecharModalCenario();
   atualizarListaCenariosIndividuais();
+  atualizarBotoesIniciar();
+}
+
+// ---------- Usar várias personas salvas de uma vez como pessoas do lote ----------
+// Cada persona selecionada vira uma pessoa fictícia nova na lista do lote, já com
+// cenário e critério individuais preenchidos (equivalente a gerar a pessoa + abrir
+// "Configurar cenário" + escolher essa persona, só que para várias de uma vez).
+let lotePersonasSelecionadas = [];
+
+function renderLotePersonasPicker() {
+  const wrap = g('lote_personas_picker');
+  const vazio = g('lote_personas_vazio');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  lotePersonasSelecionadas = lotePersonasSelecionadas.filter(id => getPersona(id));
+  vazio.style.display = personas.length ? 'none' : '';
+  personas.forEach(p => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-picker-chip' + (lotePersonasSelecionadas.includes(p.id) ? ' selected' : '');
+    chip.textContent = p.nome;
+    chip.addEventListener('click', () => {
+      const idx = lotePersonasSelecionadas.indexOf(p.id);
+      if (idx >= 0) lotePersonasSelecionadas.splice(idx, 1);
+      else lotePersonasSelecionadas.push(p.id);
+      renderLotePersonasPicker();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+function adicionarPersonasSelecionadasAoLote() {
+  if (!lotePersonasSelecionadas.length) { alert('Selecione ao menos uma persona para adicionar ao lote.'); return; }
+  const linhasAtuais = linhasAtuaisDoLote();
+  const novasLinhas = [];
+  const novosCenarios = {};
+  lotePersonasSelecionadas.forEach(id => {
+    const persona = getPersona(id);
+    if (!persona) return;
+    const pessoaFicticia = gerarPessoaFicticia();
+    const indice = linhasAtuais.length + novasLinhas.length;
+    novasLinhas.push(linhaDePessoa(pessoaFicticia));
+    novosCenarios[indice] = {
+      cenario: preencherTemplate(persona.cenario, pessoaFicticia),
+      criterio: persona.criterio || ''
+    };
+  });
+  g('lote_pessoas').value = linhasAtuais.concat(novasLinhas).join('\n');
+  Object.assign(cenariosIndividuais, novosCenarios);
+  sincronizarQtdGerarComPessoas();
+  flashCampoLote();
+  lotePersonasSelecionadas = [];
+  renderLotePersonasPicker();
+  if (!g('lote_cenarios_individuais_toggle').checked) {
+    g('lote_cenarios_individuais_toggle').checked = true;
+    alternarCenariosIndividuais();
+  } else {
+    atualizarListaCenariosIndividuais();
+  }
   atualizarBotoesIniciar();
 }
 
@@ -1669,6 +1758,64 @@ async function criarEtiquetaPersona() {
   renderTagPickerPersona();
 }
 
+// ---------- Filtrar a lista de Personas por etiqueta (modal) ----------
+let personaFiltroTagsSelecionadas = []; // filtro aplicado de fato
+let personaFiltroTagsRascunho = []; // seleção em andamento dentro do modal, antes de "Aplicar"
+
+function abrirModalFiltroEtiquetas() {
+  personaFiltroTagsRascunho = personaFiltroTagsSelecionadas.slice();
+  renderFiltroEtiquetasLista();
+  g('modal-filtro-etiquetas').showModal();
+}
+
+function fecharModalFiltroEtiquetas() {
+  g('modal-filtro-etiquetas').close();
+}
+
+function renderFiltroEtiquetasLista() {
+  const lista = g('filtro_etiquetas_lista');
+  const vazio = g('filtro_etiquetas_vazio');
+  lista.innerHTML = '';
+  vazio.style.display = personaTags.length ? 'none' : '';
+  personaTags.forEach(t => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-picker-chip' + (personaFiltroTagsRascunho.includes(t.id) ? ' selected' : '');
+    chip.textContent = t.nome;
+    chip.addEventListener('click', () => {
+      const idx = personaFiltroTagsRascunho.indexOf(t.id);
+      if (idx >= 0) personaFiltroTagsRascunho.splice(idx, 1);
+      else personaFiltroTagsRascunho.push(t.id);
+      renderFiltroEtiquetasLista();
+    });
+    lista.appendChild(chip);
+  });
+}
+
+function aplicarFiltroEtiquetas() {
+  personaFiltroTagsSelecionadas = personaFiltroTagsRascunho.slice();
+  atualizarBadgeFiltroEtiquetas();
+  fecharModalFiltroEtiquetas();
+  renderPersonas();
+}
+
+function limparFiltroEtiquetas() {
+  personaFiltroTagsSelecionadas = [];
+  personaFiltroTagsRascunho = [];
+  atualizarBadgeFiltroEtiquetas();
+  fecharModalFiltroEtiquetas();
+  renderPersonas();
+}
+
+function atualizarBadgeFiltroEtiquetas() {
+  const badge = g('persona-filtro-badge');
+  const limparBtn = g('persona-filtro-limpar');
+  const ativo = personaFiltroTagsSelecionadas.length > 0;
+  badge.style.display = ativo ? '' : 'none';
+  badge.textContent = ativo ? String(personaFiltroTagsSelecionadas.length) : '';
+  limparBtn.style.display = ativo ? '' : 'none';
+}
+
 function personaTemPlaceholder(texto) {
   return /\{(nome|cpf|telefone|genero|email|nascimento|cidade)\}/.test(texto || '');
 }
@@ -1678,16 +1825,34 @@ function resolverCenarioPersona(texto) {
   return personaTemPlaceholder(texto) ? preencherTemplate(texto, gerarPessoaFicticia()) : texto;
 }
 
+// Busca por nome (barra de texto) + filtro por etiqueta (modal), combinados com "E".
+function personasFiltradas() {
+  const campoBusca = g('persona_busca');
+  const busca = campoBusca ? campoBusca.value.trim().toLowerCase() : '';
+  return personas.filter(p => {
+    const bateBusca = !busca || p.nome.toLowerCase().includes(busca);
+    const bateTags = !personaFiltroTagsSelecionadas.length || (p.tags || []).some(tid => personaFiltroTagsSelecionadas.includes(tid));
+    return bateBusca && bateTags;
+  });
+}
+
 function renderPersonas() {
   const lista = g('persona-lista');
   const count = g('persona-count');
   lista.innerHTML = '';
+  const filtradas = personasFiltradas();
+  const filtroAtivo = personaFiltroTagsSelecionadas.length > 0 || (g('persona_busca') && g('persona_busca').value.trim());
   if (!personas.length) {
     lista.innerHTML = '<div class="persona-vazio">Nenhuma persona salva ainda. Clique em "+ Nova persona" para criar cenários reutilizáveis.</div>';
     count.textContent = '';
+  } else if (!filtradas.length) {
+    lista.innerHTML = '<div class="persona-vazio">Nenhuma persona encontrada com esse filtro.</div>';
+    count.textContent = '0 de ' + personas.length + (personas.length === 1 ? ' persona' : ' personas');
   } else {
-    count.textContent = personas.length + (personas.length === 1 ? ' persona salva' : ' personas salvas');
-    personas.forEach(p => {
+    count.textContent = filtroAtivo
+      ? (filtradas.length + ' de ' + personas.length + ' personas')
+      : (personas.length + (personas.length === 1 ? ' persona salva' : ' personas salvas'));
+    filtradas.forEach(p => {
       const row = document.createElement('div');
       row.className = 'persona-row';
       const temPh = personaTemPlaceholder(p.cenario);
@@ -1715,6 +1880,7 @@ function renderPersonas() {
     });
   }
   atualizarPickersPersona();
+  renderLotePersonasPicker();
 }
 
 function atualizarPickersPersona() {
@@ -2100,6 +2266,11 @@ async function logout() {
   usuarioAtual = null;
   personas = [];
   personaTags = [];
+  personaFiltroTagsSelecionadas = [];
+  personaFiltroTagsRascunho = [];
+  const campoBusca = g('persona_busca');
+  if (campoBusca) campoBusca.value = '';
+  atualizarBadgeFiltroEtiquetas();
   mostrarLogin();
 }
 
