@@ -178,10 +178,10 @@
   .lote-individual-nome { font-size: 13px; font-weight: 500; flex: 1; }
   .lote-individual-status { font-size: 11px; padding: 2px 10px; border-radius: 12px; background: var(--surface); color: var(--text-muted); white-space: nowrap; }
   .lote-individual-status.configurado { background: var(--success-bg); color: var(--success-text); }
-  dialog#modal-cenario-individual, dialog#modal-persona { border: none; border-radius: 14px; padding: 1.5rem; width: min(560px, 92vw); max-height: 85vh; overflow-y: auto; background: var(--surface); color: var(--text); box-shadow: 0 20px 50px rgba(32,28,53,.25); flex-direction: column; gap: 14px; margin: 0; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-  dialog#modal-cenario-individual:not([open]), dialog#modal-persona:not([open]) { display: none; }
-  dialog#modal-cenario-individual[open], dialog#modal-persona[open] { display: flex; }
-  dialog#modal-cenario-individual::backdrop, dialog#modal-persona::backdrop { background: rgba(32,28,53,.45); }
+  dialog#modal-cenario-individual, dialog#modal-persona, dialog#modal-filtro-etiquetas { border: none; border-radius: 14px; padding: 1.5rem; width: min(560px, 92vw); max-height: 85vh; overflow-y: auto; background: var(--surface); color: var(--text); box-shadow: 0 20px 50px rgba(32,28,53,.25); flex-direction: column; gap: 14px; margin: 0; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  dialog#modal-cenario-individual:not([open]), dialog#modal-persona:not([open]), dialog#modal-filtro-etiquetas:not([open]) { display: none; }
+  dialog#modal-cenario-individual[open], dialog#modal-persona[open], dialog#modal-filtro-etiquetas[open] { display: flex; }
+  dialog#modal-cenario-individual::backdrop, dialog#modal-persona::backdrop, dialog#modal-filtro-etiquetas::backdrop { background: rgba(32,28,53,.45); }
   /* ---------- Personas ---------- */
   .persona-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .persona-toolbar .persona-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
@@ -407,7 +407,12 @@
           <input type="file" id="persona-import-input" accept="application/json,.json" style="display:none" onchange="importarPersonas(event)" />
         </div>
       </div>
-      <div class="hint" style="margin-top:-4px">Cenários salvos e reutilizáveis. Ex.: "Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte." Use nos testes único e em lote. O texto pode usar os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}, preenchidos automaticamente com dados fictícios.</div>
+      <div class="persona-toolbar">
+        <input type="text" id="persona_busca" placeholder="Buscar por nome…" oninput="renderPersonas()" style="flex:1; min-width:160px; font-family:inherit; font-size:13px; color:var(--text); background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:7px 12px; outline:none;" />
+        <button class="btn-secondary" type="button" id="persona-filtro-btn" onclick="abrirModalFiltroEtiquetas()">Filtrar por etiqueta<span id="persona-filtro-badge" class="persona-badge" style="display:none; margin-left:6px"></span></button>
+        <button class="btn-secondary btn-danger-ghost" type="button" id="persona-filtro-limpar" onclick="limparFiltroEtiquetas()" style="display:none">Limpar filtro</button>
+      </div>
+      <div class="hint" style="margin-top:-4px">Cenários salvos e reutilizáveis. Ex.: "Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte." Use nos testes único e em lote. O texto pode usar os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} {campo_extra_nome} {campo_extra_valor}, preenchidos com os dados cadastrados na persona (ou fictícios, conforme a opção escolhida em cada persona).</div>
       <div id="persona-lista" class="persona-lista"></div>
     </div>
   </div>
@@ -510,6 +515,14 @@
           <span class="lote-num-label">Máx. simultâneos <input type="number" id="lote_max_simultaneos" class="lote-num" value="3" min="1" max="30" disabled /></span>
         </div>
         <div class="hint" style="margin-top:-8px">Com "Máx. simultâneos = qtd. gerada" ativado, o máximo de simultâneos acompanha automaticamente o número de pessoas geradas; desative para definir um valor independente. Cada chamada já tenta de novo automaticamente (3x) em caso de falha transitória — se muitas pessoas derem erro ao mesmo tempo, reduzir o "Máx. simultâneos" pode ajudar.</div>
+        <div class="lote-controls" style="margin-top:4px">
+          <span class="lote-num-label" style="margin:0">Usar personas salvas — cada uma vira uma pessoa do lote, já com seu próprio cenário</span>
+        </div>
+        <div class="tag-picker-list" id="lote_personas_picker" style="margin:0"></div>
+        <div class="hint" id="lote_personas_vazio" style="margin-top:-4px; display:none">Nenhuma persona salva ainda — crie personas na seção "Personas" acima para poder usá-las aqui.</div>
+        <div class="lote-controls">
+          <button class="btn-secondary" type="button" onclick="adicionarPersonasSelecionadasAoLote()">+ Adicionar personas selecionadas ao lote</button>
+        </div>
         <div class="lote-connector">↓ gera e adiciona na lista abaixo ↓</div>
         <div class="field">
           <label>Pessoas — uma por linha: nome;cpf;telefone;genero;email;nascimento;cidade</label>
@@ -533,7 +546,7 @@
       <div id="lote-cenario-compartilhado" style="display:flex; flex-direction:column; gap:14px;">
         <div class="field">
           <div class="lote-controls" style="justify-content:space-between; flex-wrap:wrap">
-            <label style="margin:0">Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade}</label>
+            <label style="margin:0">Template do cenário — use os placeholders {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} {campo_extra_nome} {campo_extra_valor}</label>
             <div class="persona-picker">
               <select id="persona_picker_lote" onchange="aplicarPersonaLoteTemplate(this.value); this.value='';">
                 <option value="">Usar persona…</option>
@@ -632,21 +645,71 @@
     <div class="tag-vazio" id="modal_persona_tags_vazio" style="display:none">Nenhuma etiqueta criada ainda. Crie a primeira abaixo.</div>
     <div class="tag-add-row">
       <input type="text" id="modal_persona_tag_novo" placeholder="Ex.: estudante de medicina" maxlength="60" onkeydown="if(event.key==='Enter'){event.preventDefault(); criarEtiquetaPersona();}" />
-      <button type="button" class="btn-secondary" onclick="criarEtiquetaPersona()">+ Etiqueta</button>
+      <button type="button" class="btn-secondary" onclick="criarEtiquetaPersona()">Adicionar etiqueta</button>
+    </div>
+  </div>
+  <div class="field">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <label style="margin:0">Dados da pessoa <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+      <button type="button" class="btn-secondary" style="font-size:12px;padding:5px 10px" onclick="gerarDadosFicticiosPersona()">Gerar dados fictícios</button>
+    </div>
+    <div class="hint" style="margin-top:-4px">Preencha os dados reais que essa persona deve usar, ou clique em "Gerar dados fictícios" para preencher tudo automaticamente (menos o campo adicional, que é seu).</div>
+    <div class="grid2">
+      <input type="text" id="modal_persona_cpf" placeholder="CPF (ex.: 123.456.789-00)" />
+      <input type="text" id="modal_persona_telefone" placeholder="Telefone (ex.: (11) 91234-5678)" />
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <input type="text" id="modal_persona_genero" placeholder="Gênero (ex.: masculino, feminino)" />
+      <input type="text" id="modal_persona_email" placeholder="Email" />
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <input type="text" id="modal_persona_nascimento" placeholder="Nascimento (DD/MM/AAAA)" />
+      <input type="text" id="modal_persona_cidade" placeholder="Cidade/UF" />
+    </div>
+    <input type="text" id="modal_persona_campo_extra" style="margin-top:8px" placeholder='Campo adicional — ex.: "Profissão: motorista de aplicativo"' maxlength="360" />
+    <div class="hint" style="margin-top:2px">Formato livre "nome do campo: valor". Vira os placeholders {campo_extra_nome} e {campo_extra_valor} no cenário.</div>
+    <div style="margin-top:10px">
+      <label style="font-weight:400;font-size:12px;color:var(--text-muted)">Se um desses campos ficar em branco ao adicionar esta persona a um lote:</label>
+      <div style="display:flex;gap:16px;margin-top:6px;font-size:13px">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="radio" name="modal_persona_fallback" id="modal_persona_fallback_ficticio" value="ficticio" checked /> Inventar dado fictício
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="radio" name="modal_persona_fallback" id="modal_persona_fallback_vazio" value="vazio" /> Deixar em branco
+        </label>
+      </div>
     </div>
   </div>
   <div class="field">
     <label>Cenário</label>
     <textarea id="modal_persona_cenario" rows="5" placeholder="Você é um candidato à inscrição do curso de Administração, no campus Belo Horizonte..."></textarea>
-    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} — preenchidos automaticamente com dados fictícios ao aplicar.</div>
+    <div class="hint" style="margin-top:-2px">Pode usar {nome} {cpf} {telefone} {genero} {email} {nascimento} {cidade} {campo_extra_nome} {campo_extra_valor} — preenchidos com os dados cadastrados acima (ou fictícios, conforme a opção escolhida acima) ao adicionar ao lote.</div>
   </div>
   <div class="field">
     <label>Critério de sucesso (opcional)</label>
     <textarea id="modal_persona_criterio" rows="3"></textarea>
   </div>
+  <div class="hint" id="modal_persona_erro" style="display:none;color:var(--danger-text);margin-top:-6px;font-weight:500"></div>
   <div class="actions">
     <button type="button" class="btn-run" onclick="salvarPersona()">Salvar persona</button>
     <button type="button" class="btn-secondary" onclick="fecharModalPersona()">Cancelar</button>
+  </div>
+</dialog>
+
+<dialog id="modal-filtro-etiquetas">
+  <div class="modal-header">
+    <h3>Filtrar por etiqueta</h3>
+    <button type="button" class="modal-close" onclick="fecharModalFiltroEtiquetas()" aria-label="Fechar">&times;</button>
+  </div>
+  <div class="field">
+    <div class="hint" style="margin-top:0">Mostra só as personas que tiverem pelo menos uma das etiquetas marcadas abaixo.</div>
+    <div class="tag-picker-list" id="filtro_etiquetas_lista"></div>
+    <div class="tag-vazio" id="filtro_etiquetas_vazio" style="display:none">Nenhuma etiqueta criada ainda.</div>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn-run" onclick="aplicarFiltroEtiquetas()">Aplicar filtro</button>
+    <button type="button" class="btn-secondary" onclick="limparFiltroEtiquetas()">Limpar</button>
+    <button type="button" class="btn-secondary" onclick="fecharModalFiltroEtiquetas()">Cancelar</button>
   </div>
 </dialog>
 
@@ -778,6 +841,91 @@ function salvarCenarioIndividual() {
   };
   fecharModalCenario();
   atualizarListaCenariosIndividuais();
+  atualizarBotoesIniciar();
+}
+
+// ---------- Usar várias personas salvas de uma vez como pessoas do lote ----------
+// Cada persona selecionada vira uma pessoa fictícia nova na lista do lote, já com
+// cenário e critério individuais preenchidos (equivalente a gerar a pessoa + abrir
+// "Configurar cenário" + escolher essa persona, só que para várias de uma vez).
+let lotePersonasSelecionadas = [];
+
+function renderLotePersonasPicker() {
+  const wrap = g('lote_personas_picker');
+  const vazio = g('lote_personas_vazio');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  lotePersonasSelecionadas = lotePersonasSelecionadas.filter(id => getPersona(id));
+  vazio.style.display = personas.length ? 'none' : '';
+  personas.forEach(p => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-picker-chip' + (lotePersonasSelecionadas.includes(p.id) ? ' selected' : '');
+    chip.textContent = p.nome;
+    chip.addEventListener('click', () => {
+      const idx = lotePersonasSelecionadas.indexOf(p.id);
+      if (idx >= 0) lotePersonasSelecionadas.splice(idx, 1);
+      else lotePersonasSelecionadas.push(p.id);
+      renderLotePersonasPicker();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+// Monta a "pessoa" que vai para a linha do lote a partir dos dados REAIS
+// cadastrados na persona. Só recorre a um dado fictício para preencher o que
+// a persona deixou em branco — nunca troca um dado que o usuário cadastrou —
+// e só faz isso se a própria persona escolheu essa opção (campo
+// fallbackDadosPessoa, escolhido pelo usuário no cadastro da persona; padrão
+// é "ficticio" para manter o comportamento de antes). Se a persona escolheu
+// "vazio", o que não foi preenchido fica em branco mesmo.
+// O "campo adicional" nunca tem um dado fictício gerado pra ele, de qualquer
+// forma — não haveria como inventar algo plausível pra um campo livre.
+function montarPessoaDaPersona(persona) {
+  const usarFicticio = persona.fallbackDadosPessoa !== 'vazio';
+  const fallback = usarFicticio ? gerarPessoaFicticia() : null;
+  const comFallback = (valor, chave) => valor || (fallback ? fallback[chave] : '');
+  return {
+    nome: persona.nome || (fallback ? fallback.nome : ''),
+    cpf: comFallback(persona.cpf, 'cpf'),
+    telefone: comFallback(persona.telefone, 'telefone'),
+    genero: comFallback(persona.genero, 'genero'),
+    email: comFallback(persona.email, 'email'),
+    nascimento: comFallback(persona.nascimento, 'nascimento'),
+    cidade: comFallback(persona.cidade, 'cidade'),
+    campoExtraNome: persona.campoExtraNome || '',
+    campoExtraValor: persona.campoExtraValor || ''
+  };
+}
+
+function adicionarPersonasSelecionadasAoLote() {
+  if (!lotePersonasSelecionadas.length) { alert('Selecione ao menos uma persona para adicionar ao lote.'); return; }
+  const linhasAtuais = linhasAtuaisDoLote();
+  const novasLinhas = [];
+  const novosCenarios = {};
+  lotePersonasSelecionadas.forEach(id => {
+    const persona = getPersona(id);
+    if (!persona) return;
+    const pessoa = montarPessoaDaPersona(persona);
+    const indice = linhasAtuais.length + novasLinhas.length;
+    novasLinhas.push(linhaDePessoa(pessoa));
+    novosCenarios[indice] = {
+      cenario: preencherTemplate(persona.cenario, pessoa),
+      criterio: persona.criterio || ''
+    };
+  });
+  g('lote_pessoas').value = linhasAtuais.concat(novasLinhas).join('\n');
+  Object.assign(cenariosIndividuais, novosCenarios);
+  sincronizarQtdGerarComPessoas();
+  flashCampoLote();
+  lotePersonasSelecionadas = [];
+  renderLotePersonasPicker();
+  if (!g('lote_cenarios_individuais_toggle').checked) {
+    g('lote_cenarios_individuais_toggle').checked = true;
+    alternarCenariosIndividuais();
+  } else {
+    atualizarListaCenariosIndividuais();
+  }
   atualizarBotoesIniciar();
 }
 
@@ -1185,7 +1333,7 @@ function gerarCenarioPessoaFicticia() {
 }
 
 function linhaDePessoa(p) {
-  return [p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade].join(';');
+  return [p.nome, p.cpf, p.telefone, p.genero, p.email, p.nascimento, p.cidade, p.campoExtraNome || '', p.campoExtraValor || ''].join(';');
 }
 
 function linhasAtuaisDoLote() {
@@ -1281,20 +1429,22 @@ function parsePessoas() {
   const raw = g('lote_pessoas').value.trim();
   if (!raw) return [];
   return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-    const [nome, cpf, telefone, genero, email, nascimento, cidade] = line.split(';').map(s => (s || '').trim());
-    return { nome: nome || 'Pessoa', cpf: cpf || '', telefone: telefone || '', genero: genero || '', email: email || '', nascimento: nascimento || '', cidade: cidade || '' };
+    const [nome, cpf, telefone, genero, email, nascimento, cidade, campoExtraNome, campoExtraValor] = line.split(';').map(s => (s || '').trim());
+    return { nome: nome || 'Pessoa', cpf: cpf || '', telefone: telefone || '', genero: genero || '', email: email || '', nascimento: nascimento || '', cidade: cidade || '', campoExtraNome: campoExtraNome || '', campoExtraValor: campoExtraValor || '' };
   });
 }
 
 function preencherTemplate(template, p) {
   return template
-    .replaceAll('{nome}', p.nome)
-    .replaceAll('{cpf}', p.cpf)
-    .replaceAll('{telefone}', p.telefone)
-    .replaceAll('{genero}', p.genero)
-    .replaceAll('{email}', p.email)
-    .replaceAll('{nascimento}', p.nascimento)
-    .replaceAll('{cidade}', p.cidade);
+    .replaceAll('{nome}', p.nome || '')
+    .replaceAll('{cpf}', p.cpf || '')
+    .replaceAll('{telefone}', p.telefone || '')
+    .replaceAll('{genero}', p.genero || '')
+    .replaceAll('{email}', p.email || '')
+    .replaceAll('{nascimento}', p.nascimento || '')
+    .replaceAll('{cidade}', p.cidade || '')
+    .replaceAll('{campo_extra_nome}', p.campoExtraNome || '')
+    .replaceAll('{campo_extra_valor}', p.campoExtraValor || '');
 }
 
 function criarLoteCard(pessoa) {
@@ -1669,6 +1819,64 @@ async function criarEtiquetaPersona() {
   renderTagPickerPersona();
 }
 
+// ---------- Filtrar a lista de Personas por etiqueta (modal) ----------
+let personaFiltroTagsSelecionadas = []; // filtro aplicado de fato
+let personaFiltroTagsRascunho = []; // seleção em andamento dentro do modal, antes de "Aplicar"
+
+function abrirModalFiltroEtiquetas() {
+  personaFiltroTagsRascunho = personaFiltroTagsSelecionadas.slice();
+  renderFiltroEtiquetasLista();
+  g('modal-filtro-etiquetas').showModal();
+}
+
+function fecharModalFiltroEtiquetas() {
+  g('modal-filtro-etiquetas').close();
+}
+
+function renderFiltroEtiquetasLista() {
+  const lista = g('filtro_etiquetas_lista');
+  const vazio = g('filtro_etiquetas_vazio');
+  lista.innerHTML = '';
+  vazio.style.display = personaTags.length ? 'none' : '';
+  personaTags.forEach(t => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-picker-chip' + (personaFiltroTagsRascunho.includes(t.id) ? ' selected' : '');
+    chip.textContent = t.nome;
+    chip.addEventListener('click', () => {
+      const idx = personaFiltroTagsRascunho.indexOf(t.id);
+      if (idx >= 0) personaFiltroTagsRascunho.splice(idx, 1);
+      else personaFiltroTagsRascunho.push(t.id);
+      renderFiltroEtiquetasLista();
+    });
+    lista.appendChild(chip);
+  });
+}
+
+function aplicarFiltroEtiquetas() {
+  personaFiltroTagsSelecionadas = personaFiltroTagsRascunho.slice();
+  atualizarBadgeFiltroEtiquetas();
+  fecharModalFiltroEtiquetas();
+  renderPersonas();
+}
+
+function limparFiltroEtiquetas() {
+  personaFiltroTagsSelecionadas = [];
+  personaFiltroTagsRascunho = [];
+  atualizarBadgeFiltroEtiquetas();
+  fecharModalFiltroEtiquetas();
+  renderPersonas();
+}
+
+function atualizarBadgeFiltroEtiquetas() {
+  const badge = g('persona-filtro-badge');
+  const limparBtn = g('persona-filtro-limpar');
+  const ativo = personaFiltroTagsSelecionadas.length > 0;
+  badge.style.display = ativo ? '' : 'none';
+  badge.textContent = ativo ? String(personaFiltroTagsSelecionadas.length) : '';
+  limparBtn.style.display = ativo ? '' : 'none';
+}
+
 function personaTemPlaceholder(texto) {
   return /\{(nome|cpf|telefone|genero|email|nascimento|cidade)\}/.test(texto || '');
 }
@@ -1678,16 +1886,34 @@ function resolverCenarioPersona(texto) {
   return personaTemPlaceholder(texto) ? preencherTemplate(texto, gerarPessoaFicticia()) : texto;
 }
 
+// Busca por nome (barra de texto) + filtro por etiqueta (modal), combinados com "E".
+function personasFiltradas() {
+  const campoBusca = g('persona_busca');
+  const busca = campoBusca ? campoBusca.value.trim().toLowerCase() : '';
+  return personas.filter(p => {
+    const bateBusca = !busca || p.nome.toLowerCase().includes(busca);
+    const bateTags = !personaFiltroTagsSelecionadas.length || (p.tags || []).some(tid => personaFiltroTagsSelecionadas.includes(tid));
+    return bateBusca && bateTags;
+  });
+}
+
 function renderPersonas() {
   const lista = g('persona-lista');
   const count = g('persona-count');
   lista.innerHTML = '';
+  const filtradas = personasFiltradas();
+  const filtroAtivo = personaFiltroTagsSelecionadas.length > 0 || (g('persona_busca') && g('persona_busca').value.trim());
   if (!personas.length) {
     lista.innerHTML = '<div class="persona-vazio">Nenhuma persona salva ainda. Clique em "+ Nova persona" para criar cenários reutilizáveis.</div>';
     count.textContent = '';
+  } else if (!filtradas.length) {
+    lista.innerHTML = '<div class="persona-vazio">Nenhuma persona encontrada com esse filtro.</div>';
+    count.textContent = '0 de ' + personas.length + (personas.length === 1 ? ' persona' : ' personas');
   } else {
-    count.textContent = personas.length + (personas.length === 1 ? ' persona salva' : ' personas salvas');
-    personas.forEach(p => {
+    count.textContent = filtroAtivo
+      ? (filtradas.length + ' de ' + personas.length + ' personas')
+      : (personas.length + (personas.length === 1 ? ' persona salva' : ' personas salvas'));
+    filtradas.forEach(p => {
       const row = document.createElement('div');
       row.className = 'persona-row';
       const temPh = personaTemPlaceholder(p.cenario);
@@ -1715,6 +1941,7 @@ function renderPersonas() {
     });
   }
   atualizarPickersPersona();
+  renderLotePersonasPicker();
 }
 
 function atualizarPickersPersona() {
@@ -1743,6 +1970,17 @@ function abrirModalPersona(id) {
   g('modal_persona_nome').value = p ? p.nome : '';
   g('modal_persona_cenario').value = p ? p.cenario : '';
   g('modal_persona_criterio').value = p ? (p.criterio || '') : '';
+  g('modal_persona_cpf').value = p ? (p.cpf || '') : '';
+  g('modal_persona_telefone').value = p ? (p.telefone || '') : '';
+  g('modal_persona_genero').value = p ? (p.genero || '') : '';
+  g('modal_persona_email').value = p ? (p.email || '') : '';
+  g('modal_persona_nascimento').value = p ? (p.nascimento || '') : '';
+  g('modal_persona_cidade').value = p ? (p.cidade || '') : '';
+  g('modal_persona_campo_extra').value = p ? combinarCampoExtra(p.campoExtraNome, p.campoExtraValor) : '';
+  g('modal_persona_fallback_vazio').checked = !!(p && p.fallbackDadosPessoa === 'vazio');
+  g('modal_persona_fallback_ficticio').checked = !(p && p.fallbackDadosPessoa === 'vazio');
+  g('modal_persona_erro').style.display = 'none';
+  g('modal_persona_erro').textContent = '';
   modalPersonaFotoAtual = p && p.foto ? p.foto : '';
   modalPersonaTagsSelecionadas = p && Array.isArray(p.tags) ? p.tags.slice() : [];
   g('modal_persona_tag_novo').value = '';
@@ -1753,6 +1991,41 @@ function abrirModalPersona(id) {
   g('modal_persona_nome').focus();
 }
 
+// "Nome do campo" e "valor" do campo adicional viviam em 2 inputs sem relação
+// visual óbvia entre si — unificados num único input no formato "nome: valor".
+function combinarCampoExtra(nome, valor) {
+  if (nome && valor) return nome + ': ' + valor;
+  if (valor) return valor;
+  if (nome) return nome + ':';
+  return '';
+}
+
+function parsearCampoExtra(texto) {
+  const t = (texto || '').trim();
+  if (!t) return { nome: '', valor: '' };
+  const idx = t.indexOf(':');
+  if (idx === -1) return { nome: '', valor: t };
+  return { nome: t.slice(0, idx).trim(), valor: t.slice(idx + 1).trim() };
+}
+
+// Preenche só os campos de dados "padrão" da pessoa (não mexe no campo
+// adicional, que é de autoria do usuário, nem no nome da persona).
+function gerarDadosFicticiosPersona() {
+  const f = gerarPessoaFicticia();
+  g('modal_persona_cpf').value = f.cpf;
+  g('modal_persona_telefone').value = f.telefone;
+  g('modal_persona_genero').value = f.genero;
+  g('modal_persona_email').value = f.email;
+  g('modal_persona_nascimento').value = f.nascimento;
+  g('modal_persona_cidade').value = f.cidade;
+}
+
+function mostrarErroPersona(msg) {
+  const el = g('modal_persona_erro');
+  el.textContent = msg;
+  el.style.display = '';
+}
+
 function fecharModalPersona() {
   g('modal-persona').close();
   personaEditandoId = null;
@@ -1761,18 +2034,28 @@ function fecharModalPersona() {
 }
 
 async function salvarPersona() {
+  g('modal_persona_erro').style.display = 'none';
   const nome = g('modal_persona_nome').value.trim();
   const cenario = g('modal_persona_cenario').value.trim();
   const criterio = g('modal_persona_criterio').value.trim();
-  if (!nome) { g('modal_persona_nome').focus(); return; }
-  if (!cenario) { g('modal_persona_cenario').focus(); return; }
+  if (!nome) { mostrarErroPersona('Preencha o nome da persona antes de salvar.'); g('modal_persona_nome').focus(); return; }
+  if (!cenario) { mostrarErroPersona('Preencha o cenário antes de salvar.'); g('modal_persona_cenario').focus(); return; }
   const foto = modalPersonaFotoAtual || '';
   const tags = modalPersonaTagsSelecionadas.slice();
+  const cpf = g('modal_persona_cpf').value.trim();
+  const telefone = g('modal_persona_telefone').value.trim();
+  const genero = g('modal_persona_genero').value.trim();
+  const email = g('modal_persona_email').value.trim();
+  const nascimento = g('modal_persona_nascimento').value.trim();
+  const cidade = g('modal_persona_cidade').value.trim();
+  const { nome: campoExtraNome, valor: campoExtraValor } = parsearCampoExtra(g('modal_persona_campo_extra').value);
+  const fallbackDadosPessoa = g('modal_persona_fallback_vazio').checked ? 'vazio' : 'ficticio';
+  const dadosPessoa = { cpf, telefone, genero, email, nascimento, cidade, campoExtraNome, campoExtraValor, fallbackDadosPessoa };
   if (personaEditandoId) {
     const p = getPersona(personaEditandoId);
-    if (p) { p.nome = nome; p.cenario = cenario; p.criterio = criterio; p.foto = foto; p.tags = tags; }
+    if (p) { p.nome = nome; p.cenario = cenario; p.criterio = criterio; p.foto = foto; p.tags = tags; Object.assign(p, dadosPessoa); }
   } else {
-    personas.push({ id: novoIdPersona(), nome, cenario, criterio, foto, tags });
+    personas.push({ id: novoIdPersona(), nome, cenario, criterio, foto, tags, ...dadosPessoa });
   }
   fecharModalPersona();
   await persistirPersonas();
@@ -2100,6 +2383,11 @@ async function logout() {
   usuarioAtual = null;
   personas = [];
   personaTags = [];
+  personaFiltroTagsSelecionadas = [];
+  personaFiltroTagsRascunho = [];
+  const campoBusca = g('persona_busca');
+  if (campoBusca) campoBusca.value = '';
+  atualizarBadgeFiltroEtiquetas();
   mostrarLogin();
 }
 

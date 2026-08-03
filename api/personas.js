@@ -39,6 +39,15 @@ module.exports = async function handler(req, res) {
         cenario: String((p && p.cenario) || '').slice(0, 5000),
         criterio: String((p && p.criterio) || '').slice(0, 5000),
         foto: String((p && p.foto) || '').slice(0, 300000),
+        cpf: String((p && p.cpf) || '').slice(0, 30),
+        telefone: String((p && p.telefone) || '').slice(0, 30),
+        genero: String((p && p.genero) || '').slice(0, 30),
+        email: String((p && p.email) || '').slice(0, 120),
+        nascimento: String((p && p.nascimento) || '').slice(0, 20),
+        cidade: String((p && p.cidade) || '').slice(0, 120),
+        campoExtraNome: String((p && p.campoExtraNome) || '').slice(0, 60),
+        campoExtraValor: String((p && p.campoExtraValor) || '').slice(0, 300),
+        fallbackDadosPessoa: (p && p.fallbackDadosPessoa) === 'vazio' ? 'vazio' : 'ficticio',
         tags: (Array.isArray(p && p.tags) ? p.tags : []).filter((tid) => idsTagsValidas.has(tid)).slice(0, 20)
       })).filter((p) => p.nome && p.cenario);
       await redis.set(key, { personas: limpas, tags: tagsLimpas });
