@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+.env.local
+test-results
+playwright-report
+cypress/videos
+cypress/screenshots
+tsconfig.tsbuildinfo
