@@ -36,6 +36,8 @@ type ProxyResponse =
       total_turnos: number;
       max_turnos: number;
       transcricao?: AvatarTurn[];
+      tempo_segundos?: number;
+      embaralhamento?: string;
       /** Id da execucao gravada em avatar_test_runs — e o que liga o card ao
        *  relatorio "desta rodada" (04/09/2026). So vem no relatorio final. */
       runId?: string;
@@ -56,6 +58,14 @@ type LotePessoaProgress = {
   /** Execucao gravada no historico pra esta pessoa — usada pra emitir o
    *  relatorio so das conversas escolhidas nas caixinhas. */
   runId?: string;
+  /**
+   * MODO DEMO: o relatorio final que a rota /run ja devolveu junto com o
+   * runId — guardado aqui pra emitirRelatorioDaExecucao nao depender de um
+   * novo GET em /api/avatar-test-runs (na Vercel, sem banco de verdade, esse
+   * GET pode cair numa instancia serverless "fria" que nunca viu essa
+   * execucao — cada instancia tem sua propria memoria).
+   */
+  runRecord?: Partial<AvatarTestRun>;
   // Motivo do "Erro" daquela pessoa (mensagem que veio da rota /run: config
   // faltando, coisasdaisa fora do ar, avatar inexistente na Zenta...). Sem
   // isso o card mostrava so a pilula "Erro" e nao dava pra saber por que a
@@ -83,6 +93,8 @@ type CardRunState = {
   resultado?: string;
   /** Execucao gravada no historico (teste unico). */
   runId?: string;
+  /** MODO DEMO: mesma ideia do runRecord de LotePessoaProgress, ver comentário lá. */
+  runRecord?: Partial<AvatarTestRun>;
   // lote — uma entrada por pessoa, cada uma com sua transcrição.
   lotePessoas?: LotePessoaProgress[];
   loteConcluidos?: number;
@@ -541,6 +553,32 @@ export default function TestesAvatarPage() {
 
   // --- Rodar direto no card ---
 
+  /**
+   * MODO DEMO: monta o registro que emitirRelatorioDaExecucao guarda em
+   * cache — os mesmos campos que lib/relatorioSimulacao.ts usa pra montar o
+   * PDF — a partir da resposta que a própria rota /run já devolveu no fim da
+   * conversa, sem precisar de um novo GET em /api/avatar-test-runs (ver
+   * comentário em CardRunState.runRecord acima).
+   */
+  function montarRunRecordFinal(
+    test: AvatarTest,
+    final: Extract<ProxyResponse, { status?: undefined }>,
+    personaNome?: string
+  ): Partial<AvatarTestRun> | undefined {
+    if (!final.runId) return undefined;
+    return {
+      id: final.runId,
+      avatarTestId: test.id,
+      personaNome: personaNome || test.name,
+      resultado: final.resultado as AvatarTestRun["resultado"],
+      totalTurnos: final.total_turnos,
+      maxTurnos: final.max_turnos,
+      tempoSegundos: final.tempo_segundos,
+      transcricao: final.transcricao,
+      embaralhamento: final.embaralhamento,
+    };
+  }
+
   async function runSingleTest(test: AvatarTest, destino?: DestinoExecucao) {
     abortRefs.current[test.id] = false;
     setRunState((prev) => ({ ...prev, [test.id]: { status: "rodando", liveTurns: [] } }));
@@ -570,7 +608,9 @@ export default function TestesAvatarPage() {
               resultado: final.status === "continuar" ? "ENCERRADO" : final.resultado,
               totalTurnos: final.status === "continuar" ? turnoAtual : final.total_turnos,
               maxTurnos: maxTurnosAtual,
-              ...(final.status === "continuar" ? {} : { runId: final.runId }),
+              ...(final.status === "continuar"
+                ? {}
+                : { runId: final.runId, runRecord: montarRunRecordFinal(test, final) }),
             },
           }));
           return;
@@ -587,6 +627,7 @@ export default function TestesAvatarPage() {
           totalTurnos: data.total_turnos,
           maxTurnos: data.max_turnos,
           runId: data.runId,
+          runRecord: montarRunRecordFinal(test, data),
         },
       }));
     } catch (e: any) {
@@ -670,6 +711,7 @@ export default function TestesAvatarPage() {
             maxTurnos: data.max_turnos,
             turns: data.transcricao || p.turns,
             runId: data.runId,
+            runRecord: montarRunRecordFinal(test, data, p.nome),
           }));
         } catch (e: any) {
           updateLotePessoa(test.id, idx, (p) => ({
@@ -735,10 +777,30 @@ export default function TestesAvatarPage() {
   }
 
   /**
-   * Busca no histórico as execuções escolhidas e gera o PDF. O card guarda só
-   * os ids: a transcrição, o tempo e o de-para do embaralhamento vêm do banco,
-   * pra o relatório sair igual ao da tela "Relatório" (mesmo gerador, em
-   * lib/relatorioSimulacao.ts).
+   * MODO DEMO: pega os registros já devolvidos pela própria rota /run e
+   * guardados no card (CardRunState.runRecord / LotePessoaProgress.runRecord)
+   * pros ids escolhidos. Isto evita depender de um novo GET no histórico:
+   * sem um banco de verdade por trás (só memória do processo), esse GET
+   * pode cair numa instância serverless da Vercel que nunca viu essa
+   * execução — cada instância "fria" tem sua própria memória — e voltar
+   * vazio mesmo a execução tendo acabado de rodar com sucesso.
+   */
+  function runRecordsCacheados(run: CardRunState | undefined, ids: string[]): Map<string, AvatarTestRun> {
+    const mapa = new Map<string, AvatarTestRun>();
+    if (!run) return mapa;
+    const candidatos = run.lotePessoas ? run.lotePessoas.map((p) => p.runRecord) : [run.runRecord];
+    for (const rec of candidatos) {
+      if (rec?.id && ids.includes(rec.id)) mapa.set(rec.id, rec as AvatarTestRun);
+    }
+    return mapa;
+  }
+
+  /**
+   * Monta o PDF das execuções escolhidas. Usa primeiro o que o próprio card
+   * já tem em memória (ver runRecordsCacheados) e só busca no histórico do
+   * servidor os ids que, por algum motivo, não vieram cacheados — ver
+   * comentário acima sobre por que essa busca sozinha não é confiável nesta
+   * demo.
    */
   async function emitirRelatorioDaExecucao(test: AvatarTest, run?: CardRunState) {
     const disponiveis = conversasRelatorio(test, run);
@@ -747,10 +809,18 @@ export default function TestesAvatarPage() {
     setEmitindoId(test.id);
     setError(null);
     try {
-      const res = await fetch(`/api/avatar-test-runs?avatarTestId=${test.id}&limit=200`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      const runs = (data.runs as AvatarTestRun[]).filter((r) => escolhidas.includes(r.id));
+      const cache = runRecordsCacheados(run, escolhidas);
+      const faltando = escolhidas.filter((id) => !cache.has(id));
+      if (faltando.length > 0) {
+        const res = await fetch(`/api/avatar-test-runs?avatarTestId=${test.id}&limit=200`);
+        const data = await res.json();
+        if (!data.error) {
+          for (const r of (data.runs as AvatarTestRun[]) || []) {
+            if (faltando.includes(r.id)) cache.set(r.id, r);
+          }
+        }
+      }
+      const runs = escolhidas.map((id) => cache.get(id)).filter((r): r is AvatarTestRun => !!r);
       if (runs.length === 0) throw new Error("As execuções escolhidas não foram encontradas no histórico.");
       await gerarRelatorioSimulacaoPdf({
         runs,
