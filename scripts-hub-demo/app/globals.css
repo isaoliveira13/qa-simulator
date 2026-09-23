@@ -1,0 +1,4040 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+:root {
+  color-scheme: light;
+  --bg: #f8f9fb;
+  --card: #ffffff;
+  --border: #e6e8ee;
+  --border-strong: #d9dce4;
+  --text: #14151a;
+  --muted: #6b7280;
+  --muted-soft: #9aa0ac;
+  --accent: #6366f1;
+  --accent-dark: #4f46e5;
+  --accent-soft: #eef0ff;
+  --accent-soft-strong: #e0e2ff;
+  --tag-bg: #eef0ff;
+  --tag-text: #4338ca;
+  --btn-primary-bg: var(--accent);
+  --btn-primary-bg-hover: var(--accent-dark);
+  --btn-primary-fg: #fff;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-text: #b91c1c;
+  --success: #16a34a;
+  --avatar-accent: #0f766e;
+  --avatar-accent-soft: #f0fdfa;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.12);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0e12;
+  --card: #16171d;
+  --border: #24262f;
+  --border-strong: #2f313c;
+  --text: #edeef2;
+  --muted: #93949f;
+  --muted-soft: #6c6d78;
+  --accent: #818cf8;
+  --accent-dark: #a5b4fc;
+  --accent-soft: #1c1d3a;
+  --accent-soft-strong: #24254a;
+  --tag-bg: #1c1d3a;
+  --tag-text: #b3b8ff;
+  /* O botao primario nao usa --accent no escuro: o indigo claro (#818cf8) em
+     area grande contra o fundo quase preto ficava berrante e ainda deixava o
+     texto branco com contraste baixo (Isa, 08/09/2026). Este indigo mais
+     fechado tem 7.8:1 com o texto claro e brilha bem menos na tela. */
+  --btn-primary-bg: #4447a7;
+  --btn-primary-bg-hover: #565ac2;
+  --btn-primary-fg: #f2f3ff;
+  --danger: #f87171;
+  --danger-soft: #2a1616;
+  --danger-text: #fca5a5;
+  --success: #4ade80;
+  --avatar-accent: #5eead4;
+  --avatar-accent-soft: #102b28;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---------- Aviso de modo demo ---------- */
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #78350f;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .demo-banner {
+  background: #2b2410;
+  border-bottom-color: #4a3d10;
+  color: #fde68a;
+}
+
+.demo-banner-tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #1f1400;
+}
+
+/* ---------- Topbar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.topbar nav a {
+  margin-left: 4px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.topbar nav a:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.topbar nav a.active {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.topbar nav.avatar a.active {
+  color: var(--avatar-accent);
+  background: var(--avatar-accent-soft);
+}
+
+/* ---------- Seletor de modo (Scripts / Avatar IA) ---------- */
+/* Separa visualmente os dois domínios do hub: scripts Playwright de um
+   lado, testes de avatar de IA do outro — são entidades totalmente
+   diferentes no banco, então o menu principal deixou de misturar os dois
+   numa fileira só (Isa pediu em 13/08/2026). Fica preso embaixo do logo
+   (.brand-col), fora da fileira de abas à direita, pra não mudar de
+   posição quando a fileira muda de tamanho entre os modos (ajuste pedido
+   por Isa depois de ver o primeiro rascunho, mesmo dia). */
+
+.mode-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.mode-switch-btn:hover {
+  color: var(--text);
+}
+
+.mode-switch-btn.active {
+  background: var(--card);
+  color: var(--accent-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.mode-switch-btn.avatar.active {
+  color: var(--avatar-accent);
+}
+
+.theme-toggle-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  margin-left: 16px;
+  padding: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--bg);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+p.subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+/* ---------- Filtros ---------- */
+
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filters select,
+.filters input {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.filters select:focus,
+.filters input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.filters input {
+  flex: 1 1 280px;
+  min-width: 260px;
+}
+
+/* ---------- Cards ---------- */
+
+/* Os botoes de acao ficam SEMPRE na direita do card (06/09/2026): com
+   flex-wrap: wrap o bloco .actions descia pra linha de baixo assim que o
+   texto/as etiquetas da esquerda ficavam largos, entao uns cards tinham os
+   botoes embaixo e outros na lateral. Mesmo padrao ja usado em
+   .card-head-row: a linha nao quebra, quem encolhe e a coluna do texto. */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: nowrap;
+  position: relative;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-strong);
+}
+
+.card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Arrastar-soltar pra reordenar (Biblioteca e Avatar IA, 21/09/2026). A alça
+   e o unico elemento com draggable=true — o HTML5 drag nativo so comeca
+   quando o gesto inicia NELA, entao o resto do card (links, botoes, popover
+   de etiqueta) continua clicavel normalmente, sem precisar de nenhum truque
+   de onDragStart pra cancelar o drag fora da alça. */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--muted-soft);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:hover {
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Card sendo arrastado (fica esmaecido no lugar de origem) e card por cima do
+   qual ele esta passando (indica onde vai cair ao soltar). */
+.card.dragging {
+  opacity: 0.5;
+}
+
+.card.drag-over {
+  border-color: var(--accent-dark);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* Copia recem-criada por "Duplicar": fica marcada por alguns segundos pra
+   ela achar de olho qual e a nova (a lista vem por data de criacao, entao a
+   copia entra no topo). Ver novoId em app/testes-avatar/page.tsx. */
+.card.recem-criada {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  animation: card-recem-criada 6s ease forwards;
+}
+
+@keyframes card-recem-criada {
+  0%,
+  70% {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.card-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.card-info {
+  padding-right: 34px;
+  min-width: 0;
+}
+
+.card-info h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.card-info .meta {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.card-title-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+
+.card-title-link:hover h3 {
+  color: var(--accent-dark);
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  /* A cor da pilula vem do catalogo de etiquetas, mas com composicoes
+     diferentes por tema: no claro, fundo clarinho + texto escuro; no escuro,
+     fundo escuro tingido + texto claro. Os quatro valores chegam como
+     variaveis inline (lib/tagColor.ts) e aqui so escolhemos o par do tema —
+     antes o par claro valia nos dois e a pilula brilhava no fundo quase
+     preto (Isa, 08/09/2026). Sem variavel inline, cai na cor neutra. */
+  --tag-pill-bg: var(--tag-pill-bg-light, var(--tag-bg));
+  --tag-pill-fg: var(--tag-pill-fg-light, var(--tag-text));
+}
+
+[data-theme="dark"] .tag {
+  --tag-pill-bg: var(--tag-pill-bg-dark, var(--tag-bg));
+  --tag-pill-fg: var(--tag-pill-fg-dark, var(--tag-text));
+}
+
+/* Botao redondo "+" no fim da linha de etiquetas de um card: abre o popover
+   de marcar/desmarcar etiqueta sem passar pela tela de edicao (04/09/2026). */
+.tag-add-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.tag-add-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.tag-add-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tag-c0 { background: #eff6ff; color: #1d4ed8; }
+.tag-c1 { background: #fdf2f8; color: #be185d; }
+.tag-c2 { background: #fff7ed; color: #c2410c; }
+.tag-c3 { background: #f0fdf4; color: #15803d; }
+.tag-c4 { background: #f5f3ff; color: #6d28d9; }
+.tag-c5 { background: #f0fdfa; color: #0f766e; }
+.tag-c6 { background: #fefce8; color: #a16207; }
+
+[data-theme="dark"] .tag-c0 { background: #1e293b; color: #93c5fd; }
+[data-theme="dark"] .tag-c1 { background: #3b1526; color: #f9a8d4; }
+[data-theme="dark"] .tag-c2 { background: #3a2210; color: #fdba74; }
+[data-theme="dark"] .tag-c3 { background: #14291b; color: #86efac; }
+[data-theme="dark"] .tag-c4 { background: #241c3a; color: #c4b5fd; }
+[data-theme="dark"] .tag-c5 { background: #102b28; color: #5eead4; }
+[data-theme="dark"] .tag-c6 { background: #2e2710; color: #fde68a; }
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+/* Em tela estreita nao cabe tudo na mesma linha: ai sim os botoes descem, por
+   falta de espaco real, nao por causa do tamanho do texto. */
+@media (max-width: 720px) {
+  .card {
+    flex-wrap: wrap;
+  }
+
+  .card > .actions {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------- Botões ---------- */
+
+button,
+.btn {
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background: var(--btn-primary-bg-hover);
+}
+
+.btn-secondary {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: var(--bg);
+  border-color: var(--border-strong);
+}
+
+.btn-secondary.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-strong);
+  color: var(--accent-dark);
+}
+
+.btn-ghost {
+  background: none;
+  border-color: transparent;
+  color: var(--muted);
+  padding: 8px 10px;
+}
+
+.btn-ghost:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: none;
+  color: var(--danger-text);
+}
+
+.btn-danger:hover {
+  background: var(--danger-soft);
+}
+
+.btn-danger-solid {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-danger-solid:hover {
+  background: var(--danger-text);
+}
+
+.btn-danger-solid:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 40px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* ---------- Formulários ---------- */
+
+form.upload-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-section {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.form-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-soft);
+  margin: 0;
+}
+
+.field label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field textarea {
+  min-height: 220px;
+}
+
+/* Campo de senha com botão de olho (login, 28/08/2026). O botão fica
+   sobreposto à direita do input, e o input ganha padding pra o texto da
+   senha não passar por baixo do ícone. */
+.password-input-wrap {
+  position: relative;
+  display: block;
+}
+
+.password-input-wrap input {
+  padding-right: 42px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted-soft);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.password-toggle:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+/* Mensagem de erro do campo: fica ABAIXO do input e ocupa espaço próprio
+   (nada de margem negativa, que fazia o texto subir por cima do campo). */
+.field-error {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--danger-text);
+}
+
+/* Formulário do login: espaçamento entre os campos. */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Só o conteúdo de script (código de verdade) usa fonte monoespaçada — os
+   demais textareas de formulário (cenário, critério etc.) usam a fonte
+   normal do site. */
+.code-textarea {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+input[type="file"] {
+  padding: 8px 10px;
+}
+
+input[type="file"]::file-selector-button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  margin-right: 10px;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--accent-soft-strong);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+.row .field {
+  flex: 1;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.hint + .hint {
+  margin-top: 2px;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 38px;
+  height: 21px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(17px);
+}
+
+.schedule-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.day-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-chip,
+.tag-chip {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.day-chip.selected,
+.tag-chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.new-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 24px;
+}
+
+.new-tag-row input[type="text"],
+.new-tag-row input:not([type]) {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.new-tag-row .color-dot {
+  opacity: 1;
+}
+
+.tag-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.tag-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.tag-chip-wrap:hover .tag-icon-btn,
+.tag-chip-wrap .tag-icon-btn:focus-visible {
+  opacity: 1;
+}
+
+.tag-icon-btn:hover {
+  color: var(--accent-dark);
+  background: var(--bg);
+}
+
+.tag-icon-btn.danger:hover {
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+
+.tag-chip-editing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 4px 6px 4px 10px;
+  background: var(--card);
+}
+
+.tag-chip-editing .color-dot {
+  opacity: 1;
+}
+
+.tag-edit-input {
+  border: none;
+  outline: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text);
+  width: 110px;
+}
+
+.file-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Header da biblioteca ---------- */
+
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.select-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.select-all-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Modais ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 16, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal h3 {
+  font-weight: 600;
+  font-size: 16.5px;
+  line-height: 1.45;
+  margin: 0 0 4px;
+}
+
+.modal-wide {
+  max-width: 860px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.field-grid .field-span-2 {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subnav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.subnav a {
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+
+.subnav a:hover {
+  color: var(--text);
+}
+
+.subnav a.active {
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent-dark);
+}
+
+.modal pre {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-size: 12.5px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.status-msg {
+  font-size: 13.5px;
+  margin-top: 8px;
+}
+
+.status-msg.ok {
+  color: var(--success);
+}
+
+.status-msg.err {
+  color: var(--danger-text);
+}
+
+/* ---------- Painéis (seções verticais empilhadas — testes de avatar, teste
+   avulso etc.) — diferente de .card, que é uma linha horizontal pensada só
+   pra itens de lista (info + ações lado a lado). Um .card com vários filhos
+   soltos vira uma linha flex que espalha tudo; .panel empilha em coluna. ---------- */
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel > h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panel > p.subtitle {
+  margin-bottom: 0;
+}
+
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Layout com sidebar ---------- */
+
+.page-with-sidebar {
+  display: flex;
+  align-items: flex-start;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+  margin-top: -32px;
+}
+
+.sidebar {
+  width: 246px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 18px 10px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-soft);
+  padding: 0 10px;
+  margin-bottom: 10px;
+}
+
+.page-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 32px 0;
+}
+
+.folder-row,
+.subfolder-row,
+.script-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  transition: background 0.12s ease;
+}
+
+.folder-row:hover,
+.subfolder-row:hover,
+.script-row:hover {
+  background: var(--bg);
+}
+
+.folder-row.active,
+.subfolder-row.active {
+  background: var(--accent-soft);
+}
+
+.folder-row {
+  margin-top: 2px;
+}
+
+.subfolder-row {
+  margin-left: 16px;
+}
+
+.script-row {
+  margin-left: 30px;
+}
+
+.folder-label,
+.subfolder-label,
+.script-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 0;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-label {
+  font-weight: 600;
+}
+
+.folder-label svg,
+.subfolder-label svg,
+.script-btn svg {
+  flex-shrink: 0;
+  color: var(--muted-soft);
+}
+
+.folder-row.active .folder-label,
+.subfolder-row.active .subfolder-label {
+  color: var(--accent-dark);
+}
+
+.folder-row.active .folder-label svg,
+.subfolder-row.active .subfolder-label svg {
+  color: var(--accent-dark);
+}
+
+.subfolder-label {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.script-btn {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.folder-label:hover,
+.subfolder-label:hover,
+.script-btn:hover {
+  color: var(--accent-dark);
+}
+
+.color-dot {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  background: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.folder-row:hover .color-dot,
+.subfolder-row:hover .color-dot,
+.script-row:hover .color-dot {
+  opacity: 0.8;
+}
+
+.color-dot:hover {
+  opacity: 1 !important;
+  transform: scale(1.1);
+}
+
+.folder-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-soft);
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.folder-row:hover .folder-delete-btn,
+.subfolder-row:hover .folder-delete-btn {
+  opacity: 1;
+}
+
+.folder-delete-btn:hover {
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+
+.color-dot::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+.color-dot::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.color-dot::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.folder-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-soft);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease;
+}
+
+.folder-toggle:hover {
+  color: var(--accent-dark);
+}
+
+.icon-chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.icon-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* ---------- Comando local / batch ---------- */
+
+.cmd-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.workers-input {
+  width: 56px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--card);
+  color: var(--text);
+}
+
+/* ---------- Filtro de etiquetas ---------- */
+
+.tag-filter-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tag-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-filter-badge {
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.tag-filter-clear {
+  background: none;
+  color: var(--danger-text);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 4px 2px;
+  border: none;
+}
+
+.tag-filter-clear:hover {
+  text-decoration: underline;
+}
+
+.tag-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: transparent;
+}
+
+.tag-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 10px;
+  width: 260px;
+}
+
+.tag-popover-search {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.tag-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.tag-popover-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tag-popover-item:hover {
+  background: var(--bg);
+}
+
+.tag-popover-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.tag-popover-empty {
+  padding: 12px 4px;
+  text-align: left;
+  font-size: 13px;
+}
+
+/* ---------- Operador dos filtros (E / OU / Diferente de) ---------- */
+
+.filter-op-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 3px;
+  background: var(--bg);
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.filter-op-btn {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-op-btn:hover {
+  color: var(--text);
+}
+
+.filter-op-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ---------- Menu do card ---------- */
+
+.card-menu-wrap {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+}
+
+.card-menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-soft);
+  padding: 5px;
+  border-radius: 6px;
+}
+
+.card-menu-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.card-menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 30;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  min-width: 140px;
+}
+
+.card-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.card-menu-item:hover {
+  background: var(--bg);
+}
+
+.card-menu-item-danger {
+  color: var(--danger-text);
+}
+
+.card-menu-item-danger:hover {
+  background: var(--danger-soft);
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ---------- Itens de popover (TagPopover / SelectPopover) ---------- */
+
+.popover-menu-item:hover {
+  background: var(--bg) !important;
+}
+
+/* ---------- Checklist ---------- */
+
+.checklist-summary {
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.checklist-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: nowrap;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.checklist-row:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-strong);
+}
+
+.checklist-row-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.checklist-row-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.checklist-row-title svg {
+  color: var(--muted-soft);
+  flex-shrink: 0;
+}
+
+.checklist-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+/* Conteúdo expandido dentro de um .checklist-row (ex.: transcrição de uma
+   execução) — flex-basis:100% força a quebrar pra linha de baixo, ocupando
+   a largura toda, sem precisar de flex-direction:column inline no row. */
+.checklist-row-expanded {
+  flex-basis: 100%;
+  width: 100%;
+}
+
+.checklist-row-expanded .status-msg-list {
+  margin-top: 0;
+}
+
+.checklist-status-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-soft);
+  min-width: 96px;
+  text-align: right;
+}
+
+.checklist-status-label.pass {
+  color: var(--success);
+}
+
+.checklist-status-label.fail {
+  color: var(--danger-text);
+}
+
+/* Ícones sempre coloridos (não só no hover, ao contrário da referência) */
+
+.checklist-mark-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  padding: 0;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+
+.checklist-mark-btn:active {
+  transform: scale(0.94);
+}
+
+.checklist-mark-btn.pass {
+  color: var(--success);
+  border-color: var(--success);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+[data-theme="dark"] .checklist-mark-btn.pass {
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.checklist-mark-btn.pass:hover {
+  background: rgba(22, 163, 74, 0.16);
+}
+
+.checklist-mark-btn.pass.active {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.checklist-mark-btn.fail {
+  color: var(--danger-text);
+  border-color: var(--danger-text);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.checklist-mark-btn.fail:hover {
+  background: rgba(220, 38, 38, 0.16);
+}
+
+.checklist-mark-btn.fail.active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+/* ---------- Tela de gerenciamento de tags ---------- */
+
+.tag-manage-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tag-manage-row:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-strong);
+}
+
+.tag-manage-row-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Pílula colorida com a cor real da tag (não a paleta fixa usada na
+   Biblioteca) — substitui a bolinha + nome solto que tinha antes, junto
+   com a cor, num card só (Isa pediu em 13/08/2026). */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 6px 14px;
+  border-radius: 999px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tag-manage-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.tag-manage-edit-row .tag-edit-input {
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+/* Selo de cor dentro do popover de seleção de tags (Enviar script) */
+
+.tag-popover-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.selected-tags-row {
+  margin-top: 10px;
+}
+
+/* --- Seleção múltipla / comando combinado --- */
+
+.batch-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 14px 18px;
+  z-index: 60;
+  max-width: min(680px, 92vw);
+  width: 100%;
+}
+
+.batch-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.batch-count {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.batch-count span {
+  color: var(--accent-dark);
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.batch-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.batch-options .checkbox-row {
+  font-size: 13px;
+}
+
+.batch-cmd-preview {
+  margin-top: 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* Suítes: lista de scripts marcáveis dentro do modal de criar/editar. */
+.suite-script-picker {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding-right: 4px;
+}
+
+.suite-script-picker .checklist-row {
+  justify-content: flex-start;
+  padding: 10px 14px;
+}
+
+.suite-script-picker .checklist-row-title {
+  font-size: 13.5px;
+}
+
+/* Selecionar item salvo (cenários, e outros catálogos no futuro) dentro de
+   um modal — mesma lista rolável de .checklist-row do suite-script-picker,
+   com um botão de ação por item em vez de checkbox de múltipla seleção. */
+.saved-item-picker {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding-right: 4px;
+}
+
+.saved-item-picker .checklist-row {
+  align-items: flex-start;
+  padding: 10px 14px;
+}
+
+.saved-item-picker .checklist-row-title {
+  font-size: 13.5px;
+}
+
+.saved-item-picker .checklist-row-preview {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 2px 0 6px;
+}
+
+/* Botão que abre um picker de item salvo (Usar persona…, Selecionar cenário
+   salvo) — mesma cor do modo "Avatar IA" (--avatar-accent), pra destacar as
+   duas ações que juntas formam um teste (persona + cenário) das demais ações
+   ao redor (22/08/2026, Isa pediu que os dois ficassem com a mesma cor). */
+.btn-picker-accent {
+  background: var(--avatar-accent-soft);
+  border-color: transparent;
+  color: var(--avatar-accent);
+}
+
+.btn-picker-accent:hover {
+  background: var(--avatar-accent);
+  color: var(--card);
+}
+
+.status-msg-list {
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.status-msg-list .status-msg {
+  margin-top: 4px;
+}
+
+.status-icon-ok {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.status-icon-err {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+/* ---------- Grid de cards do lote (acompanhamento ao vivo) ---------- */
+/* Mesma ideia visual do "RESULTADOS DO LOTE" da plataforma original
+   (coisasdaisa/index.html): um card por pessoa, com pill de status e a
+   transcrição daquela conversa — só que usando as cores/tema do hub em vez
+   de cores fixas, pra funcionar também no modo claro. */
+
+.lote-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.lote-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lote-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lote-card-name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.lote-status-pill {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.lote-status-pill.rodando {
+  color: var(--accent-dark);
+  border-color: var(--accent-soft-strong);
+  background: var(--accent-soft);
+}
+
+.lote-status-pill.ok {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.lote-status-pill.err {
+  color: var(--danger-text);
+  border-color: var(--danger-text);
+}
+
+/* Motivo do erro de uma pessoa do lote, logo abaixo do nome. Mostra a
+   mensagem que veio da rota /run em vez de deixar so a pilula "Erro" — era
+   impossivel saber se a simulacao nao rodou por config faltando, avatar
+   inexistente no destino configurado ou motor fora do ar. */
+.lote-card-erro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--danger-text);
+  word-break: break-word;
+}
+
+.lote-card-transcript {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lote-turn-enviado {
+  color: var(--accent-dark);
+}
+
+.lote-turn-resposta {
+  color: var(--success);
+}
+
+.coverage-bar-track {
+  margin-top: 8px;
+  height: 8px;
+  width: 100%;
+  max-width: 320px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.coverage-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.coverage-bar-fill.full {
+  background: #16a34a;
+}
+
+.diff-view {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  max-height: 420px;
+  overflow-y: auto;
+  font-size: 12.5px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+.diff-line {
+  padding: 1px 4px;
+}
+
+.diff-add {
+  background: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
+}
+
+.diff-remove {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+}
+
+/* ---------- Assistente de simulação (5 etapas) ---------- */
+
+/* Fileira de botões que acompanha todo campo de cenário
+   (components/cenario-actions.tsx). Fica encostada à direita do rótulo, sem
+   quebrar linha entre os botões. */
+.cenario-actions {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.cenario-actions button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  height: 36px;
+}
+
+@media (max-width: 720px) {
+  .cenario-actions {
+    flex-wrap: wrap;
+  }
+}
+
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
+.wizard-step {
+  flex-shrink: 0;
+}
+
+.wizard-step + .wizard-step::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  background: var(--border-strong);
+  vertical-align: middle;
+  margin: 0 6px;
+}
+
+.wizard-step button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--muted-soft);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+}
+
+.wizard-step button:hover {
+  color: var(--text);
+}
+
+.wizard-bead {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  color: var(--muted-soft);
+  flex-shrink: 0;
+}
+
+.wizard-step.done .wizard-bead {
+  background: var(--avatar-accent-soft);
+  border-color: var(--avatar-accent);
+  color: var(--avatar-accent);
+}
+
+.wizard-step.done button {
+  color: var(--text);
+}
+
+.wizard-step.now .wizard-bead {
+  background: var(--avatar-accent);
+  border-color: var(--avatar-accent);
+  color: var(--card);
+}
+
+.wizard-step.now button {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.wizard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.wizard-count {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--avatar-accent-soft);
+  color: var(--avatar-accent);
+}
+
+/* Vaga ainda sem pessoa na etapa 1 */
+.checklist-row.slot-vazia {
+  border-style: dashed;
+  background: transparent;
+}
+
+.checklist-row.slot-vazia .checklist-row-title {
+  color: var(--muted-soft);
+  font-weight: 500;
+}
+
+.slot-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.slot-avatar.vazia {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--muted-soft);
+}
+
+.slot-tag {
+  margin-left: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.slot-tag.persona {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-dark);
+}
+
+/* Painel de conflito da etapa 2 */
+.conflict-panel {
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.conflict-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.conflict-panel-body {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.conflict-source {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
+.conflict-source:hover {
+  border-color: var(--border-strong);
+}
+
+.conflict-source.picked {
+  border-color: var(--avatar-accent);
+  box-shadow: 0 0 0 2px var(--avatar-accent-soft);
+}
+
+.conflict-radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+  margin-top: 3px;
+  background: var(--card);
+}
+
+.conflict-source.picked .conflict-radio {
+  border: 5px solid var(--avatar-accent);
+}
+
+.conflict-source-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.conflict-source-preview {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* Tabela "cenário em vigor por pessoa" (etapa 2) e Resumo (etapa 5) */
+.eff-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.eff-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+  min-width: 520px;
+}
+
+.eff-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 9px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.eff-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+
+.eff-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.eff-table .eff-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.origem-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.origem-tag.persona {
+  background: var(--avatar-accent-soft);
+  color: var(--avatar-accent);
+}
+
+.origem-tag.proprio {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.btn-link-accent {
+  background: none;
+  border: 0;
+  padding: 0 0 0 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--avatar-accent);
+  cursor: pointer;
+}
+
+.btn-link-accent:hover {
+  text-decoration: underline;
+}
+
+.resumo-table {
+  min-width: 380px;
+}
+
+/* ---------- Roteiro de turnos (etapa 3 do assistente) ---------- */
+/* Uma linha por turno, com o numero num selo a esquerda. O turno 1 e a
+   MENSAGEM DE ABERTURA: desde 02/09/2026 ela e uma linha do roteiro como
+   qualquer outra (antes era um campo "saudacao inicial" fora da contagem,
+   desenhado aqui como um turno 0 tracejado so pra leitura). */
+
+.roteiro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.roteiro-linha {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--card);
+}
+
+.roteiro-num {
+  flex-shrink: 0;
+  min-width: 30px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--avatar-accent-soft);
+  color: var(--avatar-accent);
+}
+
+.roteiro-corpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roteiro-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* A setinha do seletor de modo desenhada por nos, e nao a nativa: a nativa
+   fica colada na borda direita e longe do texto, e o tamanho dela muda de
+   navegador pra navegador. Com appearance:none o espaco entre o texto e a
+   seta e o padding-right, e o espaco entre a seta e a borda e a posicao do
+   background — os dois sob controle. A largura segue a opcao mais larga
+   ("Instrução para a IA"), entao a seta encosta no texto justamente no caso
+   em que o gap incomodava. */
+.roteiro-head select {
+  width: auto;
+  /* Sem isto o seletor nasce com a largura da opcao mais longa, e as opcoes
+     curtas ("Livre") ficam com um vao entre o texto e a seta. Onde ainda nao
+     existe, o comportamento e o de sempre — nada quebra. */
+  field-sizing: content;
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+
+[data-theme="dark"] .roteiro-head select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393949f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.roteiro-modo-fixo {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.roteiro-leitura {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.roteiro-head .roteiro-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.roteiro-head .roteiro-check input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex-shrink: 0;
+  /* O checkbox nativo carrega um deslocamento proprio; este meio pixel e o
+     que faz o quadradinho ficar na mesma linha de base do texto ao lado. */
+  transform: translateY(0.5px);
+}
+
+.roteiro-remover {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--muted-soft);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.roteiro-remover:hover {
+  color: var(--danger);
+}
+
+.roteiro-corpo textarea {
+  min-height: 0;
+}
+
+/* Turno confirmado: contorno no verde da enumeracao do card, com o halo
+   suave do mesmo par de tokens. E marca de leitura humana ("essa linha esta
+   pronta") — nao muda nada na execucao. */
+.roteiro-linha.confirmada {
+  border-color: var(--avatar-accent);
+  box-shadow: 0 0 0 3px var(--avatar-accent-soft);
+}
+
+.roteiro-confirma {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.roteiro-confirma .btn-secondary {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+/* Botao de confirmar antes de ter o que confirmar: visivel, mas claramente
+   fora de alcance — sumir com ele faria a fileira pular de altura. */
+.roteiro-confirma .btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.roteiro-confirmado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--avatar-accent);
+}
+
+.roteiro-rodape {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Aviso de roteiro maior que o maximo de turnos: nao impede salvar, so avisa
+   que os ultimos turnos escritos nunca vao acontecer. */
+.status-msg.warn {
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+}
+
+[data-theme="dark"] .status-msg.warn {
+  color: #fcd34d;
+  background: #2a2413;
+  border-color: #4d411c;
+}
+
+.roteiro-aviso {
+  margin-top: 0;
+}
+
+/* Sub-opcao do roteiro ("rodar o roteiro inteiro", 08/09/2026): e uma escolha
+   SOBRE o roteiro, entao mora dentro do bloco dele, separada por uma linha em
+   vez de virar mais um switch solto na etapa. */
+.roteiro-subopcao {
+  margin: 2px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* O mesmo roteiro, so pra leitura, no bloco "Como conversa" da ficha. */
+.roteiro-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roteiro-ficha-linha {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.roteiro-ficha-linha .roteiro-leitura {
+  margin-top: 2px;
+  color: var(--text);
+}
+
+/* Blocos das etapas 3 e 4 que já existem mas ainda não têm comportamento */
+.wizard-soon-block {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 4px;
+}
+
+.soon-badge {
+  margin-left: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* ---------- Switch de destino (card de Simulacoes) ---------- */
+/* Dois switches segmentados (ambiente e avatar) com todos os rotulos
+   conhecidos: o escolhido fica destacado. Nao ha estado de "nao existe aqui"
+   — uma simulacao e uma so e roda em qualquer destino; o switch troca o
+   destino DELA. Ver components/destino-switch.tsx e lib/destinos.ts. */
+
+.destino {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  /* Mesmo respiro em cima e embaixo da fileira: 9px separa o titulo da
+     simulacao da linha de ambiente/avatar, e essa linha do que vem depois. */
+  margin: 9px 0 9px;
+}
+
+.destino-lab {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+  margin-right: 2px;
+}
+
+/* Segunda dimensao (Avatar): respiro a mais pra separar os dois switches sem
+   precisar do tracinho divisor que existia entre as pilulas. */
+.destino-lab.sec {
+  margin-left: 10px;
+}
+
+/* Switch de destino: mesmo desenho do seletor Scripts/Avatar IA do header
+   (.mode-switch) — capsula com fundo do plano de fundo e o segmento escolhido
+   em branco com sombra. Um escolhido por vez em cada dimensao. */
+/* Bem baixo de proposito (pedido da Isa em 25/08/2026): mantem a largura dos
+   rotulos, mas ocupa pouca altura pra nao competir com o titulo do card. */
+.destino-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.destino-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 10px;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.65;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.destino-seg:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.destino-seg.sel {
+  background: var(--card);
+  color: var(--accent-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.destino-switch.avatar .destino-seg.sel {
+  color: var(--avatar-accent);
+}
+
+/* Enquanto a troca esta sendo gravada (ou a simulacao esta rodando), o switch
+   nao aceita clique — evita mudar o destino no meio de uma conversa. */
+.destino-seg:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+
+
+/* ---------- Ficha da simulacao (botao "Abrir" da lista) ---------- */
+/* Tela de leitura de app/testes-avatar/[id]: as cinco etapas do assistente
+   viram blocos numa pagina so, na mesma ordem. Nada aqui edita — os links
+   "Editar" de cada bloco levam pro assistente na etapa correspondente. */
+
+.ficha-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 18px 0 16px;
+}
+
+.ficha-tile {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ficha-tile-k {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+  margin-bottom: 5px;
+}
+
+.ficha-tile-v {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-tile-v.ok {
+  color: var(--success);
+}
+
+.ficha-tile-v.err {
+  color: var(--danger);
+}
+
+.ficha-tile-v small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.ficha-grid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* O proprio .panel ja tem margin-bottom: 16px, entao a coluna nao precisa de
+   gap — so tirar a margem do ultimo pra nao sobrar espaco no fim da coluna. */
+.ficha-col > .panel:last-child {
+  margin-bottom: 0;
+}
+
+.ficha-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ficha-sec-head h3 {
+  margin: 0;
+}
+
+.ficha-edit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  text-decoration: none;
+  padding: 3px 7px;
+  border-radius: 7px;
+}
+
+.ficha-edit:hover {
+  background: var(--accent-soft);
+}
+
+/* Rotulo + conteudo andam juntos; o gap de 14px do .panel separa os blocos. */
+.ficha-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ficha-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+}
+
+.ficha-read {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 13.5px;
+  line-height: 1.62;
+  max-width: 66ch;
+}
+
+.ficha-read.vazio {
+  color: var(--muted-soft);
+  font-style: italic;
+}
+
+.ficha-dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px 14px;
+  align-items: baseline;
+}
+
+.ficha-dl dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ficha-dl dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-dl dd.quebra {
+  word-break: break-word;
+  font-weight: 500;
+  font-size: 12.5px;
+}
+
+.ficha-state {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* Listas dentro de um .panel da ficha (pessoas, execucoes): o .panel ja
+   espaca os blocos com gap, entao as linhas ficam com espaco proprio menor. */
+.ficha-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ficha-list .checklist-row {
+  margin-bottom: 0;
+}
+
+.ficha-state.on {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border-color: transparent;
+}
+
+@media (max-width: 860px) {
+  .ficha-grid {
+    grid-template-columns: 1fr;
+  }
+  .ficha-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ficha-dl dd {
+    text-align: left;
+  }
+}
+
+/* Título da seção "Ocultos" do modal Gerenciar avatares (28/08/2026) — os
+   avatares apagados do switch do card, que continuam listados ali só pra
+   poderem voltar. */
+.avatares-ocultos-tit {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 18px 0 0;
+  text-transform: uppercase;
+}
+
+/* ---------- Aba Avatares (28/08/2026) ---------- */
+
+/* Etiqueta do avatar que entrou sozinho ao salvar uma simulação — cor do modo
+   Avatar IA, mais apagada que uma tag de etiqueta: é informação, não seleção. */
+.tag-auto {
+  background: var(--avatar-accent-soft);
+  color: var(--avatar-accent);
+}
+
+.avatar-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.avatar-meta-sep {
+  color: var(--muted-soft);
+}
+
+.avatar-sem-uso {
+  color: var(--muted-soft);
+}
+
+.avatar-slug {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 6px;
+}
+
+.avatar-subs {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.avatar-subs-lab {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.avatar-sub-row {
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 9px 12px;
+}
+
+.avatar-sub-nome {
+  align-items: center;
+  display: flex;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.avatar-sub-seta {
+  color: var(--muted-soft);
+}
+
+/* Linha de subavatar no formulário: dois campos + remover. Fora de .filters de
+   propósito — lá existe uma regra global que zera a largura de input aninhado. */
+.avatar-sub-form {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr auto;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 620px) {
+  .avatar-sub-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Cobertura por tela (checklist de cenários, 28/08/2026) ---------- */
+/* Card de tela que abre pra mostrar o checklist. Repete o desenho de
+   .checklist-row (mesma borda, raio e hover) porque é a mesma leitura, mas
+   com corpo expansível — por isso classes próprias em vez de reaproveitar
+   aquela, que é uma linha fechada. */
+
+.cobertura-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 10px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.cobertura-card:hover,
+.cobertura-card.open {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-strong);
+}
+
+.cobertura-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  flex-wrap: wrap;
+}
+
+/* O bloco da esquerda inteiro é o gatilho de abrir/fechar. É <button> pra
+   funcionar no teclado, então precisa zerar a aparência de botão. */
+.cobertura-head-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* stretch (e não flex-start): os filhos são <span>, e é o flex que os
+     blocifica — com flex-start a barra de progresso encolheria pro tamanho
+     do conteúdo (zero) em vez de respeitar o width/max-width dela. */
+  align-items: stretch;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cobertura-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cobertura-caret {
+  display: inline-flex;
+  color: var(--muted-soft);
+  transition: transform 0.15s ease;
+}
+
+.cobertura-card.open .cobertura-caret {
+  transform: rotate(90deg);
+}
+
+.cobertura-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cobertura-pct {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 46px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cobertura-pct.full {
+  color: var(--success);
+}
+
+.cobertura-body {
+  border-top: 1px solid var(--border);
+  padding: 12px 18px 16px;
+}
+
+.cobertura-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+}
+
+.cobertura-item + .cobertura-item {
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.cobertura-item:hover {
+  background: var(--bg);
+}
+
+.cobertura-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--card);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.cobertura-check svg {
+  opacity: 0;
+}
+
+.cobertura-check.on {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.cobertura-check.on svg {
+  opacity: 1;
+}
+
+.cobertura-check:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cobertura-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cobertura-item-nome {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.cobertura-item.done .cobertura-item-nome {
+  color: var(--muted);
+}
+
+.cobertura-item-info .tags {
+  margin-top: 5px;
+}
+
+/* Editar/apagar só aparecem no hover (ou com foco de teclado), pra lista
+   ficar limpa quando ela está só marcando itens. */
+.cobertura-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.cobertura-item:hover .cobertura-item-actions,
+.cobertura-item:focus-within .cobertura-item-actions {
+  opacity: 1;
+}
+
+.cobertura-icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cobertura-icon-btn:hover {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.cobertura-icon-btn.danger:hover {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger-text);
+}
+
+.cobertura-add-row {
+  margin-top: 8px;
+}
+
+/* ---------- Etapa 4 do assistente: embaralhamento de dados ---------- */
+
+.embaralho {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+/* Uma troca: [campo] [⇄/←] [campo] [remover]. O botão do meio é estreito de
+   propósito — ele é um alternador, não uma ação principal. */
+.troca-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.troca-linha select {
+  min-width: 0;
+}
+
+.troca-dir {
+  border: 1px solid transparent;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.troca-dir:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.troca-dir:disabled {
+  background: var(--bg);
+  color: var(--muted-soft);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+.troca-alerta {
+  color: #92400e;
+  margin: 0;
+}
+
+[data-theme="dark"] .troca-alerta {
+  color: #fcd34d;
+}
+
+.troca-quando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.troca-quando input[type="number"] {
+  width: 82px;
+}
+
+.embaralho-pessoas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.embaralho-pessoa {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.embaralho-pessoa:hover {
+  background: var(--bg);
+}
+
+/* Regra global de .filters zera a largura de input aninhado; aqui o checkbox
+   está fora de .filters, mas o tamanho fica explícito pelo mesmo motivo. */
+.embaralho-pessoa input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.embaralho-pessoa .hint {
+  display: inline;
+  margin: 0;
+}
+
+/* ---------- Cabeçalho do card de simulação ----------
+   Nome longo não empurra mais os botões/menu pra linha de baixo: a linha não
+   quebra, a coluna do nome encolhe e o texto que sobra vira "…". */
+
+.card-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: nowrap;
+  /* Sem isto a propria linha estica ate caber o nome inteiro (min-width: auto
+     de item flex = min-content) e transborda o card: o nome aparecia completo e
+     a pilula "N pessoas" saia pra fora da borda. Medido em 03/09/2026. */
+  min-width: 0;
+  max-width: 100%;
+}
+
+.card-head-row > .card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.card-head-row .card-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 0;
+}
+
+.card-head-row .actions {
+  flex: 0 0 auto;
+}
+
+.card-title-ellipsis {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card-title-ellipsis > a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A pilula nunca encolhe nem quebra: ela e a informacao que precisa aparecer
+   sempre. Quem cede espaco e o nome. */
+.card-title-ellipsis > .tag {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Em tela estreita não dá pra manter tudo numa linha só: aí sim os botões
+   descem, mas por falta de espaço real, não por causa do nome. */
+@media (max-width: 720px) {
+  .card-head-row {
+    flex-wrap: wrap;
+  }
+
+  .card-head-row .actions {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .checklist-row {
+    flex-wrap: wrap;
+  }
+
+  .checklist-row-actions {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------- Liga/desliga do avatar (aba "Avatares", 03/09/2026) ----------
+   Desativado o avatar continua cadastrado inteiro, só sai da lista de opções
+   do switch dos cards de Simulações. */
+
+.avatar-toggle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  gap: 8px;
+  margin-right: 4px;
+  user-select: none;
+}
+
+/* Card do avatar desligado fica visivelmente "fora do ar", mas legível: é
+   cadastro vivo, não lixo. */
+.card.avatar-inativo .card-info h3,
+.card.avatar-inativo .card-info .meta {
+  opacity: 0.6;
+}
+
+.tag-inativo {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* Aviso no switch do card de Simulações quando o avatar daquela simulação foi
+   desligado: sem isso some uma pílula e não dá pra saber por quê. */
+.destino-aviso {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--danger-text);
+  background: var(--danger-soft);
+  border-radius: 999px;
+  padding: 1px 9px;
+  line-height: 1.65;
+}
+
+/* --- Relatório da execução (04/09/2026) ---------------------------------
+   Caixinhas pra escolher QUAIS conversas entram no PDF: no painel de
+   resultado do card (uma por pessoa do lote) e na lista da tela Relatório
+   (uma por execução do histórico). */
+
+/* Botão "Emitir relatório" + fechar, no canto do painel de resultado. */
+.run-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.run-report-count {
+  font-weight: 500;
+  color: var(--muted-soft);
+}
+
+/* Versão miúda dos botões, pra caber dentro do painel sem competir com o
+   "Rodar" do cabeçalho do card. */
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* Nome da pessoa vira alvo de clique junto com a caixinha. */
+.lote-card-pick {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.lote-card-pick input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* Caixinha da linha da tela Relatório. */
+.run-pick {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.run-pick input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* Sem isso o texto da linha não ocupa o espaço que sobrou depois da caixinha
+   e o resultado descola do canto direito. Escopado no irmão da caixinha pra
+   não mexer nas outras telas que usam .checklist-row. */
+.run-pick + .checklist-row-info {
+  flex: 1;
+}
+
+.report-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* --- Importacao em lote (/upload/lote, 08/09/2026) ------------------------ */
+
+.import-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.import-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 2px 4px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.import-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.import-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.import-inline-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.import-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.import-pastas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.import-pasta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px 3px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.import-pasta-chip button {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.import-pasta-chip button:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.import-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.import-row.marcada {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.import-row.com-erro {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.import-check {
+  width: 16px;
+  height: 16px;
+  margin-top: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.import-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.import-file {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 0.7fr 0.7fr 1.4fr;
+  gap: 8px;
+}
+
+.import-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.import-grid label span {
+  font-size: 11px;
+  color: var(--muted-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.import-grid input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+}
+
+.import-grid input:disabled {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.import-aviso {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.import-aviso.erro {
+  color: var(--danger-text, var(--danger));
+}
+
+.import-status {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.import-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.import-badge.novo {
+  background: var(--accent-soft-strong);
+  color: var(--tag-text);
+}
+
+.import-badge.existe {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border-strong);
+}
+
+.import-badge.ok {
+  background: var(--success);
+  color: #fff;
+}
+
+.import-badge.erro {
+  background: var(--danger);
+  color: #fff;
+}
+
+.import-framework {
+  font-size: 11px;
+  color: var(--muted-soft);
+}
+
+.import-progresso {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.import-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 860px) {
+  .import-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- Montagem da suíte (sequência de teste, 22/09/2026) ----------
+   A suíte deixou de ser um saco de scripts e virou uma lista ordenada: a
+   ordem da Biblioteca (scripts.ordem, de 21/09) continua sendo uma só, e cada
+   suíte guarda a sua. Por isso a tela tem duas colunas — a da esquerda é a
+   Biblioteca com a mesma barra de busca/filtro (achar o teste), a da direita é
+   a sequência (ordenar), e filtrar de um lado nunca mexe no outro. */
+.suite-identity {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.suite-identity .field {
+  flex: 1 1 300px;
+  min-width: 260px;
+  margin-bottom: 0;
+}
+
+.suite-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.suite-tag-row .empty-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.suite-builder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .suite-builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.suite-col {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.suite-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.suite-col-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.suite-col-count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* A lista rola dentro da coluna: com 100+ testes, rolar a página inteira
+   faria a sequência sumir de vista bem na hora de arrastar pra ela. */
+.suite-col-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: calc(100vh - 330px);
+  min-height: 200px;
+}
+
+.suite-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.suite-item:hover {
+  border-color: var(--border-strong);
+}
+
+/* Script que já está na sequência continua visível na coluna da esquerda
+   (some da lista seria pior: ela perde a referência de onde ele estava no
+   filtro), só que apagado e com o botão virando "tirar". */
+.suite-item.ja-na-sequencia {
+  opacity: 0.5;
+}
+
+.suite-item-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.suite-item-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.suite-item-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suite-item .meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suite-item .tags {
+  margin-top: 5px;
+}
+
+.suite-item-num {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suite-item-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.suite-item-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.suite-item-btn:hover:not(:disabled) {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.suite-item-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.suite-item-btn.add {
+  color: var(--accent-dark);
+}
+
+.suite-item-btn.remove:hover {
+  color: var(--danger);
+}
+
+.suite-item.dragging {
+  opacity: 0.4;
+}
+
+.suite-item.drag-over {
+  border-color: var(--accent-dark);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.suite-col-empty {
+  padding: 26px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Item do menu de reticências que é link (ex.: "Abrir" no card de suíte). */
+a.card-menu-item {
+  text-decoration: none;
+}
