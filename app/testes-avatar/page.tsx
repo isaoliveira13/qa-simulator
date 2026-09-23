@@ -1236,67 +1236,92 @@ export default function TestesAvatarPage() {
               </div>
             </div>
 
-            {run && test.tipo !== "lote" && (
-              <div className="panel" style={{ marginTop: 12, marginBottom: 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {run.status === "rodando" && (
-                      <p className="status-msg" style={{ marginTop: 0 }}>
-                        Rodando... turno {run.totalTurnos ?? 0}
-                        {run.maxTurnos ? ` de ${run.maxTurnos}` : ""}
-                      </p>
-                    )}
-                    {run.status === "concluido" && (
-                      <p
-                        className={`status-msg ${run.resultado === "SUCESSO" ? "ok" : run.resultado === "FALHA" ? "err" : ""}`}
-                        style={{ marginTop: 0 }}
-                      >
-                        <strong>{run.resultado || "Concluído"}</strong> · {run.totalTurnos ?? 0}/{run.maxTurnos ?? "—"} turnos
-                      </p>
-                    )}
-                    {run.status === "erro" && (
-                      <p className="status-msg err" style={{ marginTop: 0 }}>
-                        {run.erro || "Erro ao rodar."}
-                      </p>
-                    )}
+            {run && test.tipo !== "lote" && (() => {
+              // MODO DEMO (pedido da Isa, 22/09/2026): teste único usa o
+              // mesmo cartão que o lote usa por pessoa — em vez de manter
+              // dois jeitos de mostrar uma conversa, trata o teste único como
+              // um "lote de 1" e reaproveita exatamente a mesma marcação
+              // (.lote-card, .lote-status-pill etc.) e as mesmas funções
+              // (labelStatusPessoa/pillClassForStatus) do bloco de lote logo
+              // abaixo, pra layout nunca mais divergir entre os dois.
+              const pessoa: LotePessoaProgress = {
+                nome: test.name,
+                status:
+                  run.status === "rodando" ? "rodando" : run.status === "erro" ? "ERRO" : ((run.resultado as LotePessoaStatus) || "ENCERRADO"),
+                turno: run.totalTurnos,
+                maxTurnos: run.maxTurnos,
+                turns: run.liveTurns || [],
+                runId: run.runId,
+                erro: run.erro,
+              };
+              return (
+                <div className="panel" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                    <div className="run-report-actions">
+                      {!rodando && conversasDoRelatorio.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          disabled={emitindoId === test.id}
+                          onClick={() => emitirRelatorioDaExecucao(test, run)}
+                        >
+                          {emitindoId === test.id ? "Gerando PDF..." : "Emitir relatório"}
+                        </button>
+                      )}
+                      {!rodando && (
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          title="Fechar"
+                          aria-label="Fechar histórico da execução"
+                          onClick={() => fecharRun(test.id)}
+                        >
+                          <IconX size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="run-report-actions">
-                    {!rodando && conversasDoRelatorio.length > 0 && (
-                      <button
-                        type="button"
-                        className="btn-secondary btn-sm"
-                        disabled={emitindoId === test.id}
-                        onClick={() => emitirRelatorioDaExecucao(test, run)}
-                      >
-                        {emitindoId === test.id ? "Gerando PDF..." : "Emitir relatório"}
-                      </button>
-                    )}
-                    {!rodando && (
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        title="Fechar"
-                        aria-label="Fechar histórico da execução"
-                        onClick={() => fecharRun(test.id)}
-                      >
-                        <IconX size={13} />
-                      </button>
-                    )}
+                  <div className="lote-card-grid">
+                    <div className="lote-card">
+                      <div className="lote-card-header">
+                        {!rodando && pessoa.runId ? (
+                          <label className="lote-card-pick" title="Incluir esta conversa no relatório">
+                            <input
+                              type="checkbox"
+                              checked={relatorioMarcadas.includes(pessoa.runId)}
+                              onChange={() =>
+                                toggleConversaRelatorio(test.id, pessoa.runId as string, conversasDoRelatorio)
+                              }
+                            />
+                            <span className="lote-card-name">{pessoa.nome}</span>
+                          </label>
+                        ) : (
+                          <span className="lote-card-name">{pessoa.nome}</span>
+                        )}
+                        <span className={`lote-status-pill ${pillClassForStatus(pessoa.status)}`}>
+                          {labelStatusPessoa(pessoa)}
+                        </span>
+                      </div>
+                      {pessoa.status === "ERRO" && pessoa.erro && (
+                        <p className="lote-card-erro" title={pessoa.erro}>
+                          {pessoa.erro}
+                        </p>
+                      )}
+                      {pessoa.turns.length > 0 && (
+                        <div className="lote-card-transcript">
+                          {pessoa.turns.map((t) => (
+                            <div key={t.turno}>
+                              <div className="lote-turn-enviado">➜ {t.enviado}</div>
+                              <div className="lote-turn-resposta">⇐ {t.resposta_avatar}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                {run.liveTurns && run.liveTurns.length > 0 && (
-                  <div className="status-msg-list" style={{ maxHeight: 220, overflowY: "auto" }}>
-                    {run.liveTurns.map((t) => (
-                      <div key={t.turno} className="status-msg">
-                        <strong>Turno {t.turno}</strong>
-                        <div>➜ {t.enviado}</div>
-                        <div>⇐ {t.resposta_avatar}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
 
             {run && test.tipo === "lote" && run.lotePessoas && (
               <div className="panel" style={{ marginTop: 12, marginBottom: 0 }}>
