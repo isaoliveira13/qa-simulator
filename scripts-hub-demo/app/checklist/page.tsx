@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ScriptEntry, Tag } from "@/lib/types";
+import { ScriptEntry, Suite, Tag } from "@/lib/types";
 import { IconCheck, IconX, IconFlask } from "../icons";
 import { FilterPopover } from "@/components/filter-popover";
 import { SelectPopover } from "@/components/select-popover";
-import { emptyFilter, filterValueCount, matchesFilter, MultiFilter } from "@/lib/filters";
+import { emptyFilter, filterValueCount, matchesFilter, MultiFilter, normalizeFilter } from "@/lib/filters";
 import { SCRIPT_FILTER_KEYS } from "@/lib/sharedFilterKeys";
 import { SavedFilters } from "@/components/saved-filters";
 import { tagPillStyle, sortTagsByColor } from "@/lib/tagColor";
@@ -40,6 +40,12 @@ export default function ChecklistPage() {
 
   const [tagFilter, setTagFilter] = usePersistedState<MultiFilter>(SCRIPT_FILTER_KEYS.tag, emptyFilter("AND"));
 
+  // Filtro por suíte: chave própria do Checklist (fora do namespace scripts:*),
+  // porque a Biblioteca não tem esse filtro. Com "OU" entra só o que está na(s)
+  // suíte(s); com "Diferente de" tira os testes dela(s) do checklist.
+  const [suites, setSuites] = useState<Suite[]>([]);
+  const [suiteFilter, setSuiteFilter] = usePersistedState<MultiFilter>("checklist:suiteFilter", emptyFilter("OR"));
+
   const [marks, setMarks] = useState<Marks>({});
   const [marksLoaded, setMarksLoaded] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -58,6 +64,15 @@ export default function ChecklistPage() {
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/suites")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error && Array.isArray(data.suites)) setSuites(data.suites);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -109,8 +124,36 @@ export default function ChecklistPage() {
     [scripts]
   );
 
+  const suiteNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    suites.forEach((su) => {
+      map[su.id] = su.name;
+    });
+    return map;
+  }, [suites]);
+
+  // script id -> ids das suítes em que ele entra (um teste pode estar em várias).
+  const suitesByScript = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    suites.forEach((su) => {
+      su.scriptIds.forEach((id) => {
+        (map[id] ||= []).push(su.id);
+      });
+    });
+    return map;
+  }, [suites]);
+
+  // Quando o filtro é exatamente UMA suíte incluída (não "Diferente de"), a
+  // lista segue a ordem da sequência dela — é a ordem em que os testes rodam.
+  const suiteEmOrdem = useMemo(() => {
+    const groups = normalizeFilter(suiteFilter).blocks.flatMap((b) => b.groups).filter((g) => g.values.length > 0);
+    if (groups.length !== 1 || groups[0].values.length !== 1 || groups[0].op === "NOT") return null;
+    return suites.find((su) => su.id === groups[0].values[0]) ?? null;
+  }, [suiteFilter, suites]);
+
   // Sem nenhum filtro selecionado, todos os scripts ficam visíveis.
-  const filtered = scripts.filter((s) => {
+  const filteredRaw = scripts.filter((s) => {
+    if (!matchesFilter(suitesByScript[s.id] ?? [], suiteFilter)) return false;
     if (!matchesFilter([s.avatar], avatarFilter)) return false;
     if (!matchesFilter([s.ambiente], ambienteFilter)) return false;
     if (frameworkFilter && s.framework !== frameworkFilter) return false;
@@ -123,8 +166,15 @@ export default function ChecklistPage() {
     return true;
   });
 
+  const filtered = suiteEmOrdem
+    ? [...filteredRaw].sort(
+        (a, b) => suiteEmOrdem.scriptIds.indexOf(a.id) - suiteEmOrdem.scriptIds.indexOf(b.id)
+      )
+    : filteredRaw;
+
   const verifiedCount = filtered.filter((s) => marks[s.id]).length;
   const hasActiveFilter =
+    filterValueCount(suiteFilter) > 0 ||
     filterValueCount(avatarFilter) > 0 ||
     filterValueCount(ambienteFilter) > 0 ||
     !!frameworkFilter ||
@@ -174,7 +224,7 @@ export default function ChecklistPage() {
       const summaryLine = hasActiveFilter
         ? `Filtro aplicado · ${filtered.length} script(s) · ${verifiedCount} verificado(s)`
         : `Todos os scripts · ${filtered.length} script(s) · ${verifiedCount} verificado(s)`;
-      doc.text(summaryLine, 40, 58);
+      doc.text(suiteEmOrdem ? `Suíte: ${suiteEmOrdem.name} · ${summaryLine}` : summaryLine, 40, 58);
       doc.setTextColor(20);
 
       const rows = filtered.map((s) => [
@@ -252,6 +302,14 @@ export default function ChecklistPage() {
 
       <div className="filters">
         <FilterPopover
+          label="Suíte"
+          options={suites.map((su) => ({ name: su.id }))}
+          formatOption={(id) => suiteNames[id] ?? id}
+          filter={suiteFilter}
+          onChange={setSuiteFilter}
+          onClear={() => setSuiteFilter(emptyFilter("OR"))}
+        />
+        <FilterPopover
           label="Avatar"
           options={avatars.map((a) => ({ name: a }))}
           filter={avatarFilter}
@@ -317,7 +375,11 @@ export default function ChecklistPage() {
           <div className="checklist-row" key={s.id}>
             <div className="checklist-row-info">
               <div className="checklist-row-title">
-                <IconFlask size={13} />
+                {suiteEmOrdem ? (
+                  <span className="suite-item-num">{suiteEmOrdem.scriptIds.indexOf(s.id) + 1}</span>
+                ) : (
+                  <IconFlask size={13} />
+                )}
                 {s.name}
               </div>
               <div className="meta">
