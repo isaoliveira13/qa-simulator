@@ -1254,9 +1254,19 @@ export default function TestesAvatarPage() {
                 runId: run.runId,
                 erro: run.erro,
               };
+              const loteConcluidosUnico = rodando ? 0 : 1;
               return (
                 <div className="panel" style={{ marginTop: 12, marginBottom: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <p className="checklist-summary" style={{ margin: 0 }}>
+                      {loteConcluidosUnico} de 1 concluídos
+                      {!rodando && conversasDoRelatorio.length > 0 && (
+                        <span className="run-report-count">
+                          {" · "}
+                          {relatorioMarcadas.length} de {conversasDoRelatorio.length} no relatório
+                        </span>
+                      )}
+                    </p>
                     <div className="run-report-actions">
                       {!rodando && conversasDoRelatorio.length > 0 && (
                         <button
