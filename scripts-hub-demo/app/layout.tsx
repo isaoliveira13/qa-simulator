@@ -8,7 +8,7 @@ import { DemoBanner } from "../components/demo-banner";
 const faviconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>`;
 
 export const metadata = {
-  title: "Repositório de Scripts (demo)",
+  title: "Scripts Simulator Hub (demo)",
   description: "Demonstração de portfólio: biblioteca e organização de scripts Playwright/Cypress",
   icons: {
     icon: `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`,
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <span className="brand-mark">
                 <IconCode size={16} />
               </span>
-              Repositório de Scripts
+              Scripts Simulator Hub
             </span>
           </div>
           <div className="topbar-right">

@@ -167,7 +167,7 @@ export default function ChecklistPage() {
       const dateTimeStr = now.toLocaleString("pt-BR");
 
       doc.setFontSize(16);
-      doc.text("Relatório de Checklist — Repositório de Scripts", 40, 40);
+      doc.text("Relatório de Checklist — Scripts Simulator Hub", 40, 40);
 
       doc.setFontSize(10);
       doc.setTextColor(110);
