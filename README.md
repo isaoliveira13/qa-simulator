@@ -1,4 +1,4 @@
-# coisasdaisa — Avatar IA (versão de demonstração)
+# QA Simulator Chat — Avatar IA (versão de demonstração)
 
 > **Esta é uma versão de portfólio, não o produto real.** Ela existe só pra
 > quem visitar meu portfólio ter uma ideia de como o projeto funciona,
