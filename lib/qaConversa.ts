@@ -6,11 +6,11 @@
  *
  * Uma conversa e um vaivem de tres tempos, e este arquivo e so isso:
  *
- *   novo      -> abre a conversa na Tolky e roda o primeiro turno
+ *   novo      -> abre a conversa na Zenta e roda o primeiro turno
  *   continuar -> roda mais um turno de onde parou
  *   encerrar  -> fecha na marra e emite o relatorio do que houve ate ali
  *
- * A cada turno: manda a fala da pessoa pro avatar (lib/tolky.ts), pergunta pra
+ * A cada turno: manda a fala da pessoa pro avatar (lib/zenta.ts), pergunta pra
  * IA o que a pessoa faria em seguida (lib/qaSimulador.ts), e deixa as
  * heuristicas (lib/qaHeuristicas.ts) vetarem a decisao dela quando a conversa
  * esta em loop ou o "sucesso" nao tem lastro. Quando para de ser "continuar",
@@ -18,21 +18,21 @@
  */
 
 import { AvatarTurn, QuandoEmbaralhar, TurnoRoteiro } from "./types";
-import { ApiAmbiente, AMBIENTES_TOLKY } from "./destinos";
+import { ApiAmbiente, AMBIENTES_ZENTA } from "./destinos";
 import {
   createConversation,
   tokensDeDominio,
   getConversationInformation,
   gerarRespostaAvatarFicticia,
   resolveHostToken,
-} from "./tolky";
+} from "./zenta";
 import { SessaoConversa, comporAbertura, criterioCumpridoNaTranscricao, decidirProximoPasso } from "./qaSimulador";
 import { entradaDoTurno } from "./roteiroTurnos";
 import { ajustarOcorrencias, ParOcorrencia } from "./embaralhar";
 import { updateLoopCounters } from "./qaHeuristicas";
 import { deleteSession, getSession, limparSessoesVencidas, setSession } from "./qaSessao";
 
-const TOLKY_BASE_URL_PADRAO = AMBIENTES_TOLKY.prod;
+const ZENTA_BASE_URL_PADRAO = AMBIENTES_ZENTA.prod;
 
 /**
  * MODO DEMO: limite absoluto de turnos por conversa, pra não sobrecarregar —
@@ -103,22 +103,22 @@ export interface RelatorioFinal {
   transcricao: SessaoConversa["turnsLog"];
   /** De-para do embaralhamento de dados desta conversa, vazio quando nao houve. */
   embaralhamento?: string;
-  sentimento_tolky: { resumo: string | null; sentimento_score: number | null; heat_score: number | null } | null;
+  sentimento_zenta: { resumo: string | null; sentimento_score: number | null; heat_score: number | null } | null;
 }
 
 /**
- * Qual das tres APIs da Tolky uma base_url e. Serve so pra escolher o token
+ * Qual das tres APIs da Zenta uma base_url e. Serve so pra escolher o token
  * do dominio certo quando ha um por ambiente configurado; sem eles, todos
- * caem no TOLKY_DOMAIN_TOKEN unico e essa distincao nao muda nada.
+ * caem no ZENTA_DOMAIN_TOKEN unico e essa distincao nao muda nada.
  */
 function apiDaBaseUrl(baseUrl: string): ApiAmbiente {
   const limpa = baseUrl.replace(/\/$/, "");
-  if (limpa === AMBIENTES_TOLKY.homolog) return "homolog";
-  if (limpa === AMBIENTES_TOLKY.stage) return "stage";
+  if (limpa === AMBIENTES_ZENTA.homolog) return "homolog";
+  if (limpa === AMBIENTES_ZENTA.stage) return "stage";
   return "prod";
 }
 
-/** Abre a conversa na Tolky e monta o estado inicial. */
+/** Abre a conversa na Zenta e monta o estado inicial. */
 export async function inicializarSessao(body: {
   config?: ConfigConversa;
   cenario: string;
@@ -138,7 +138,7 @@ export async function inicializarSessao(body: {
   // MODO DEMO: nunca deixa passar de 10 turnos, mesmo que o teste salvo peça mais.
   const maxTurnos = Math.min(maxTurnosPedido, LIMITE_TURNOS_DEMO);
 
-  const baseUrl = (cfg.base_url || process.env.TOLKY_BASE_URL || TOLKY_BASE_URL_PADRAO).replace(/\/$/, "");
+  const baseUrl = (cfg.base_url || process.env.ZENTA_BASE_URL || ZENTA_BASE_URL_PADRAO).replace(/\/$/, "");
   const hostSlug = cfg.host_slug || "us";
   const subSlug = cfg.sub_slug || null;
   const saudacao = cfg.saudacao_inicial || "Olá! Gostaria de mais informações.";
@@ -339,7 +339,7 @@ export async function montarRelatorioFinal(session: SessaoConversa): Promise<Rel
     sucesso = sucessoNaRevisao;
   }
 
-  const infoTolky = await getConversationInformation({
+  const infoZenta = await getConversationInformation({
     baseUrl: session.baseUrl,
     hostToken: session.hostToken,
     conversationId: session.conversationId,
@@ -370,7 +370,7 @@ export async function montarRelatorioFinal(session: SessaoConversa): Promise<Rel
         : session.motivo || "Não concluído";
 
   // MODO DEMO: deixa explícito, no próprio relatório, que nada disso
-  // aconteceu de verdade — nenhuma chamada real à Tolky ou a qualquer IA.
+  // aconteceu de verdade — nenhuma chamada real à Zenta ou a qualquer IA.
   const motivo_encerramento = `${motivoBase} (demonstração — conversa e respostas fictícias, geradas localmente, sem nenhuma chamada real)`;
 
   return {
@@ -386,11 +386,11 @@ export async function montarRelatorioFinal(session: SessaoConversa): Promise<Rel
     fim: new Date().toISOString(),
     transcricao: session.turnsLog,
     ...(session.embaralhoResumo ? { embaralhamento: session.embaralhoResumo } : {}),
-    sentimento_tolky: infoTolky
+    sentimento_zenta: infoZenta
       ? {
-          resumo: infoTolky.dialogue_summary || null,
-          sentimento_score: infoTolky.sentiment_score ?? null,
-          heat_score: infoTolky.heat_score ?? null,
+          resumo: infoZenta.dialogue_summary || null,
+          sentimento_score: infoZenta.sentiment_score ?? null,
+          heat_score: infoZenta.heat_score ?? null,
         }
       : null,
   };

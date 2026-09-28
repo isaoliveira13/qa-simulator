@@ -2056,7 +2056,7 @@ input[type="file"]::file-selector-button:hover {
 /* Motivo do erro de uma pessoa do lote, logo abaixo do nome. Mostra a
    mensagem que veio da rota /run em vez de deixar so a pilula "Erro" — era
    impossivel saber se a simulacao nao rodou por config faltando, avatar
-   inexistente na Tolky ou motor fora do ar. */
+   inexistente na Zenta ou motor fora do ar. */
 .lote-card-erro {
   margin: 0;
   font-size: 12px;

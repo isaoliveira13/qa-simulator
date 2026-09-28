@@ -1,6 +1,6 @@
 /**
  * MODO DEMO — este arquivo é o que, no motor original, falava com a API de
- * verdade da Tolky (api.tolky.to / api-hml / api-stg). Nesta versão de
+ * verdade da Zenta (api.zenta.to / api-hml / api-stg). Nesta versão de
  * portfólio ele NUNCA faz uma chamada de rede: toda "resposta do avatar" é
  * fictícia, montada localmente a partir do cenário e do critério de sucesso
  * que a pessoa preencheu no formulário.
@@ -13,7 +13,7 @@
  * precisar mudar.
  */
 
-export interface TolkyTurno {
+export interface ZentaTurno {
   avatarMessage: string;
   okStatus: boolean;
   conversationId: string | null;
@@ -154,7 +154,7 @@ export function gerarRespostaAvatarFicticia(ctx: ContextoRespostaFicticia): stri
 }
 
 /**
- * Sentimento/resumo da conversa — no motor original vinha da Tolky
+ * Sentimento/resumo da conversa — no motor original vinha da Zenta
  * (conversations/getConversationInformation). Aqui é sempre fabricado
  * localmente e o resumo deixa claro que é fictício.
  */
@@ -165,7 +165,7 @@ export async function getConversationInformation(_: {
 }): Promise<{ dialogue_summary: string; sentiment_score: number; heat_score: number }> {
   return {
     dialogue_summary:
-      "Resumo fictício de demonstração — esta conversa não aconteceu de verdade, nenhuma chamada foi feita à Tolky.",
+      "Resumo fictício de demonstração — esta conversa não aconteceu de verdade, nenhuma chamada foi feita à Zenta.",
     sentiment_score: Math.round((0.55 + Math.random() * 0.4) * 100) / 100,
     heat_score: Math.round(Math.random() * 20) / 100,
   };

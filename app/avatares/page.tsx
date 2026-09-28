@@ -351,7 +351,7 @@ export default function AvataresPage() {
           <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <h3>{editing ? "Editar avatar" : "Novo avatar"}</h3>
             <p className="hint" style={{ marginTop: 4 }}>
-              O nome é o rótulo que aparece no switch. O host slug é o que a Tolky conhece.
+              O nome é o rótulo que aparece no switch. O host slug é o que a Zenta conhece.
             </p>
 
             <div className="field-grid" style={{ marginTop: 14 }}>
@@ -373,7 +373,7 @@ export default function AvataresPage() {
               </div>
             </div>
             <p className="hint">
-              Em dúvida, o host slug é o final do endereço da conversa: hml.tolky.to/<b>clienteexemplo</b>.
+              Em dúvida, o host slug é o final do endereço da conversa: hml.zenta.to/<b>clienteexemplo</b>.
               Deixando em branco, ele vira o próprio nome.
             </p>
 

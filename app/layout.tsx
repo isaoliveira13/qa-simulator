@@ -9,7 +9,7 @@ const faviconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100
 
 export const metadata = {
   title: "QA Simulator Chat — Avatar IA",
-  description: "Motor de simulação de conversas com o avatar de IA da Tolky",
+  description: "Motor de simulação de conversas com o avatar de IA da Zenta",
   icons: {
     icon: `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`,
   },

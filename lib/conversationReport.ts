@@ -83,7 +83,7 @@ export function construirRelatorioHTML({ titulo, d, cenario, criterio }: Convers
   <div class="info-box"><strong>Motivo do encerramento</strong>${escapeHTML(d.motivo_encerramento || "—")}</div>
   <h2>Transcrição da conversa</h2>
   ${rows}
-  <div class="footer">Repositório de Scripts — Tolky · conversation_id: ${escapeHTML(d.conversation_id || "—")}</div>
+  <div class="footer">Repositório de Scripts — Zenta · conversation_id: ${escapeHTML(d.conversation_id || "—")}</div>
   </body></html>`;
 }
 

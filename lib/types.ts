@@ -13,11 +13,11 @@ export interface AvatarTest {
   avatar: string;
     /** Ex.: "hml", "prod". */
   ambiente: string;
-    /** Slug do host na Tolky (repassado como config.host_slug pro coisasdaisa). */
+    /** Slug do host na Zenta (repassado como config.host_slug pro coisasdaisa). */
   hostSlug: string;
     /** Sub-slug opcional (multi-tenant), se o host tiver. */
   subSlug?: string;
-    /** Sobrescreve a URL base da API da Tolky, se precisar (raro). */
+    /** Sobrescreve a URL base da API da Zenta, se precisar (raro). */
   baseUrl?: string;
     /**
      * Legado: a primeira mensagem quando NAO ha roteiro de turnos. Desde
@@ -214,7 +214,7 @@ export interface AvatarTestRun {
   id: string;
     /** Id do teste de avatar executado, se ainda existir. */
   avatarTestId?: string;
-    /** conversation_id gerado pela Tolky pro coisasdaisa, identifica a conversa real. */
+    /** conversation_id gerado pela Zenta pro coisasdaisa, identifica a conversa real. */
   conversationId?: string;
     /** Desfecho devolvido pelo coisasdaisa. */
   resultado?: "SUCESSO" | "FALHA" | "ENCERRADO";
@@ -224,7 +224,7 @@ export interface AvatarTestRun {
   tempoSegundos?: number;
     /** Transcricao completa turno a turno. */
   transcricao?: AvatarTurn[];
-    /** Resumo/sentimento que a Tolky calcula sobre a conversa. */
+    /** Resumo/sentimento que a Zenta calcula sobre a conversa. */
   sentimento?: {
     resumo?: string | null;
     sentimento_score?: number | null;

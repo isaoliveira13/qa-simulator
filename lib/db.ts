@@ -207,7 +207,7 @@ function seed(): Store {
           { turno: 3, enviado: "Certo, obrigado(a). Voltando ao que falei: O avatar confirma o cancelamento do plano e informa o prazo em que ele será efetivado.", resposta_avatar: "Consegui resolver isso pra você — sobre efetivado, já está tudo certo agora. O avatar confirma o cancelamento do plano e informa o prazo em que ele será efetivado." },
         ],
         sentimento: {
-          resumo: "Resumo fictício de demonstração — esta conversa não aconteceu de verdade, nenhuma chamada foi feita à Tolky.",
+          resumo: "Resumo fictício de demonstração — esta conversa não aconteceu de verdade, nenhuma chamada foi feita à Zenta.",
           sentimento_score: 0.82,
           heat_score: 0.05,
         },

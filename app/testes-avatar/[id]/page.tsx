@@ -262,7 +262,7 @@ export default function FichaSimulacaoPage() {
   const comCenarioProprio = test.cenariosIndividuaisAtivo ? Object.keys(overrides).length : 0;
   const rodando = running || batchRunning;
   const ultima = runs[0];
-  const apiLabel = (test.baseUrl || "https://api.tolky.to").replace(/^https?:\/\//, "");
+  const apiLabel = (test.baseUrl || "https://api.zenta.to").replace(/^https?:\/\//, "");
   // Ambiente + avatar viram o endereco da conversa (ver urlDaConversa em
   // lib/destinos.ts). Fica na ficha porque e a forma mais rapida de conferir
   // que a simulacao aponta pro lugar certo: da pra abrir o link e ver se o
@@ -792,7 +792,7 @@ export default function FichaSimulacaoPage() {
               <dd>{test.hostSlug}</dd>
               <dt>Sub-slug</dt>
               <dd>{test.subSlug || "—"}</dd>
-              <dt>API Tolky</dt>
+              <dt>API Zenta</dt>
               <dd className="quebra">{apiLabel}</dd>
               <dt>Conversa</dt>
               <dd className="quebra">

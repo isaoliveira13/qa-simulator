@@ -13,7 +13,7 @@ contra o avatar, e guarda o relatório final (resultado, transcrição
 completa, tempo, sentimento) no histórico.
 
 No projeto real (privado, usado internamente), esse motor conversa de
-verdade com a API da Tolky e usa a OpenAI pra simular a pessoa do outro
+verdade com a API da Zenta e usa a OpenAI pra simular a pessoa do outro
 lado. **Nesta versão de demonstração, os dois são substituídos por geradores
 locais de texto fictício** — ver detalhes abaixo.
 
@@ -33,8 +33,8 @@ locais de texto fictício** — ver detalhes abaixo.
 
 ## Sobre esta demo: o que é diferente do projeto real
 
-- **Nenhuma chamada real é feita.** Não existe token de Tolky, não existe
-  chave de OpenAI, e o código (`lib/tolky.ts`, `lib/qaSimulador.ts`) nem
+- **Nenhuma chamada real é feita.** Não existe token de Zenta, não existe
+  chave de OpenAI, e o código (`lib/zenta.ts`, `lib/qaSimulador.ts`) nem
   tenta abrir uma conexão de rede pra "rodar" uma simulação — impossível
   disparar um teste de verdade contra um avatar ou chat real a partir deste
   repositório.
@@ -85,7 +85,7 @@ tempo, sentimento) fica salvo no histórico da sessão atual.
 
 **Como funciona por baixo, nesta versão de demo:**
 
-- `lib/tolky.ts` — no projeto real, o cliente da API da Tolky. Aqui,
+- `lib/zenta.ts` — no projeto real, o cliente da API da Zenta. Aqui,
   `gerarRespostaAvatarFicticia` monta a fala do avatar localmente, ecoando o
   critério de sucesso quando "resolve" o atendimento.
 - `lib/qaSimulador.ts` — no projeto real, a IA (OpenAI) que fazia o papel da

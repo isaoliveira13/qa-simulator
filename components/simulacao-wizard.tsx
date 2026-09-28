@@ -213,7 +213,7 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
   const [embaralharConfig, setEmbaralharConfig] = useState<EmbaralharConfig>(CONFIG_EMBARALHAR_PADRAO);
 
   // ---- etapa 5: identificação ----
-  // Avatar, ambiente, host slug, sub-slug e API da Tolky NÃO moram mais aqui
+  // Avatar, ambiente, host slug, sub-slug e API da Zenta NÃO moram mais aqui
   // (02/09/2026, regra da Isa): onde a simulação roda é decidido no switch do
   // card, na hora de rodar, e não no cadastro. O assistente cuida do que é da
   // simulação e não muda de lugar pra lugar; o destino é do switch.

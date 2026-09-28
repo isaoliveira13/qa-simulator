@@ -67,7 +67,7 @@ type LotePessoaProgress = {
    */
   runRecord?: Partial<AvatarTestRun>;
   // Motivo do "Erro" daquela pessoa (mensagem que veio da rota /run: config
-  // faltando, coisasdaisa fora do ar, avatar inexistente na Tolky...). Sem
+  // faltando, coisasdaisa fora do ar, avatar inexistente na Zenta...). Sem
   // isso o card mostrava so a pilula "Erro" e nao dava pra saber por que a
   // simulacao nao rodou em lugar nenhum.
   erro?: string;
@@ -419,7 +419,7 @@ export default function TestesAvatarPage() {
   // so, e ambiente/avatar sao o parametro dela que varia (o mesmo site em
   // hml, stg ou prod continua sendo o mesmo site). Junto com o rotulo vai a
   // configuracao tecnica que ele significa (host slug, sub slug e a URL da
-  // API da Tolky), do mapa em lib/destinos.ts — e a mesma coisa que a etapa 5
+  // API da Zenta), do mapa em lib/destinos.ts — e a mesma coisa que a etapa 5
   // do assistente grava. Rotulo fora do mapa (avatar novo, cadastro antigo)
   // mantem a configuracao que a simulacao ja tinha, pra nao inventar destino.
   //
@@ -465,7 +465,7 @@ export default function TestesAvatarPage() {
     // Rotulo fora do mapa nao pode mais herdar o host slug do avatar
     // anterior (era isso que fazia a simulacao dizer "clienteexemplo" e continuar
     // mandando o host de outro avatar pro motor): configDoAvatarOuRotulo cai
-    // no proprio rotulo, que e a convencao de slug da Tolky.
+    // no proprio rotulo, que e a convencao de slug da Zenta.
     const cfgAvatar =
       dimensao === "avatar" ? configDoAvatarOuRotulo(avatar, avataresCadastrados) : null;
     const patch = {

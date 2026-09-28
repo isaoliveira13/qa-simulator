@@ -33,7 +33,7 @@ export const maxDuration = 60;
 // O motor da simulacao roda AQUI DENTRO desde 27/08/2026. Antes esta rota era
 // so uma ponte: repassava novo/continuar/encerrar pro deploy separado do
 // `coisasdaisa` (COISASDAISA_URL) e devolvia o que viesse. O motor foi portado
-// pra lib/qaConversa.ts + lib/tolky.ts + lib/qaSimulador.ts + lib/qaHeuristicas.ts,
+// pra lib/qaConversa.ts + lib/zenta.ts + lib/qaSimulador.ts + lib/qaHeuristicas.ts,
 // e a sessao da conversa saiu do Redis dele pro Postgres que o hub ja tinha.
 //
 // O contrato com o navegador nao mudou nada nessa migracao — de proposito: o
@@ -319,7 +319,7 @@ export async function POST(req: NextRequest) {
       maxTurnos: data.max_turnos,
       tempoSegundos: data.tempo_segundos,
       transcricao: data.transcricao,
-      sentimento: data.sentimento_tolky,
+      sentimento: data.sentimento_zenta,
       startedAt: data.inicio,
       ...(data.embaralhamento ? { embaralhamento: data.embaralhamento } : {}),
       ...(personaId ? { personaId } : {}),

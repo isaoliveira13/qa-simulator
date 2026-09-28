@@ -1,7 +1,7 @@
 /**
  * Mapa de destinos do Avatar IA: a traducao entre os rotulos que aparecem na
  * tela ("hml", "isa") e a configuracao tecnica que realmente aponta a conversa
- * pra algum lugar (baseUrl da API da Tolky, host slug, sub slug).
+ * pra algum lugar (baseUrl da API da Zenta, host slug, sub slug).
  *
  * Fonte unica lida pelo switch de destino do card
  * (components/destino-switch.tsx) e pela etapa 5 do assistente
@@ -9,26 +9,26 @@
  * da mesma simulacao, que e o que impede "hml" e "HML" de virarem duas
  * coisas. Desde 28/08/2026 os avatares vem da tabela `avatars` (aba "Avatares"), nao
  * mais de uma constante: acrescentar um avatar ou subavatar e cadastro pela
- * tela. Os AMBIENTES continuam fixos aqui — sao as tres APIs que a Tolky tem.
+ * tela. Os AMBIENTES continuam fixos aqui — sao as tres APIs que a Zenta tem.
  */
 
 export type ApiAmbiente = "prod" | "stage" | "homolog";
 
-/** URLs fixas da API da Tolky por ambiente (mesmo mapeamento do assistente). */
-export const AMBIENTES_TOLKY: Record<ApiAmbiente, string> = {
-  prod: "https://api.tolky.to",
-  stage: "https://api-stg.tolky.to",
-  homolog: "https://api-hml.tolky.to",
+/** URLs fixas da API da Zenta por ambiente (mesmo mapeamento do assistente). */
+export const AMBIENTES_ZENTA: Record<ApiAmbiente, string> = {
+  prod: "https://api.zenta.to",
+  stage: "https://api-stg.zenta.to",
+  homolog: "https://api-hml.zenta.to",
 };
 
 export interface AmbienteDestino {
   /** Rotulo usado no cadastro da simulacao e mostrado na trilha. */
   nome: string;
-  /** Qual das tres APIs da Tolky esse rotulo significa. */
+  /** Qual das tres APIs da Zenta esse rotulo significa. */
   api: ApiAmbiente;
   /**
    * Prefixo do host onde a CONVERSA com o avatar acontece — a outra metade
-   * do que um ambiente significa. Producao nao tem prefixo (tolky.to),
+   * do que um ambiente significa. Producao nao tem prefixo (zenta.to),
    * homologacao e "hml." e staging e "beta." (mesmo padrao dos specs
    * Playwright: v2.gestao / v2.hml.gestao / v2.beta.gestao).
    */
@@ -36,7 +36,7 @@ export interface AmbienteDestino {
 }
 
 /**
- * Nao e uma lista que cresce: sao as tres APIs que a Tolky tem.
+ * Nao e uma lista que cresce: sao as tres APIs que a Zenta tem.
  * Se um dia surgir um ambiente novo, e uma linha aqui.
  */
 export const AMBIENTES: AmbienteDestino[] = [
@@ -55,7 +55,7 @@ export interface SubavatarDestino {
 export interface AvatarDestino {
   /** Rotulo usado no cadastro da simulacao ("isa"). */
   nome: string;
-  /** Host slug na Tolky. */
+  /** Host slug na Zenta. */
   hostSlug: string;
   /** Subavatares: moram dentro do pai, mesmo hostSlug, subSlug proprio. */
   subs: SubavatarDestino[];
@@ -85,7 +85,7 @@ export const AVATARES_PADRAO: AvatarDestino[] = [
 
 export function baseUrlDoAmbiente(nome: string): string | null {
   const amb = AMBIENTES.find((a) => a.nome.toLowerCase() === nome.trim().toLowerCase());
-  return amb ? AMBIENTES_TOLKY[amb.api] : null;
+  return amb ? AMBIENTES_ZENTA[amb.api] : null;
 }
 
 /**
@@ -100,7 +100,7 @@ export function ambienteConhecido(nome: string): boolean {
 export function baseUrlParaSalvar(nomeAmbiente: string): string | null {
   const amb = AMBIENTES.find((a) => a.nome.toLowerCase() === nomeAmbiente.trim().toLowerCase());
   if (!amb || amb.api === "prod") return null;
-  return AMBIENTES_TOLKY[amb.api];
+  return AMBIENTES_ZENTA[amb.api];
 }
 
 export function avatarPorNome(nome: string, avatares: AvatarDestino[]): AvatarDestino | null {
@@ -241,8 +241,8 @@ export function configDoAvatar(
 /**
  * Mesma coisa que configDoAvatar, mas nunca devolve null pra um rotulo
  * simples: um avatar que ainda nao esta no mapa vira host slug igual ao
- * proprio rotulo — que e a convencao da Tolky ("clienteexemplo" mora em
- * <ambiente>.tolky.to/clienteexemplo) e a mesma coisa que ela digitaria na etapa
+ * proprio rotulo — que e a convencao da Zenta ("clienteexemplo" mora em
+ * <ambiente>.zenta.to/clienteexemplo) e a mesma coisa que ela digitaria na etapa
  * 5 do assistente.
  *
  * Existe por causa de um bug real: o switch do card usava configDoAvatar
@@ -270,17 +270,17 @@ export function configDoAvatarOuRotulo(
 /**
  * Onde a conversa com o avatar acontece: ambiente + avatar viram um endereco.
  *
- *   hml  + clienteexemplo -> https://hml.tolky.to/clienteexemplo
- *   stg  + clienteexemplo -> https://beta.tolky.to/clienteexemplo
- *   prod + clienteexemplo -> https://tolky.to/clienteexemplo
+ *   hml  + clienteexemplo -> https://hml.zenta.to/clienteexemplo
+ *   stg  + clienteexemplo -> https://beta.zenta.to/clienteexemplo
+ *   prod + clienteexemplo -> https://zenta.to/clienteexemplo
  *
- * E a mesma coisa que AMBIENTES ja faz pro lado da API (api-hml.tolky.to),
+ * E a mesma coisa que AMBIENTES ja faz pro lado da API (api-hml.zenta.to),
  * so que pro lado da conversa. Ate aqui o mapa so sabia traduzir
  * ambiente -> API; quem sabia virar endereco de conversa era o coisasdaisa,
  * e por isso essa regra nao existia em lugar nenhum deste repo.
  *
- * Observacao pra quem for seguir o link: em producao, tolky.to/<slug>
- * responde 302 pra chat.tolky.to/<slug> (conferido em 27/08/2026). O
+ * Observacao pra quem for seguir o link: em producao, zenta.to/<slug>
+ * responde 302 pra chat.zenta.to/<slug> (conferido em 27/08/2026). O
  * endereco canonico continua sendo o sem "chat." — e o que a pessoa digita e
  * o que o redirect resolve sozinho.
  *
@@ -298,5 +298,5 @@ export function urlDaConversa(
   const slug = hostSlug.trim().replace(/^\/+|\/+$/g, "");
   if (!amb || !slug) return null;
   const sub = (subSlug || "").trim().replace(/^\/+|\/+$/g, "");
-  return `https://${amb.prefixoConversa}tolky.to/${slug}${sub ? `/${sub}` : ""}`;
+  return `https://${amb.prefixoConversa}zenta.to/${slug}${sub ? `/${sub}` : ""}`;
 }
