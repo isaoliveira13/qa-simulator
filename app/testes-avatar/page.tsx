@@ -243,6 +243,9 @@ export default function TestesAvatarPage() {
   // --- Seleção múltipla / rodar vários testes salvos ao mesmo tempo ---
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Arquivar/desarquivar em massa (05/10/2026): age nas selecionadas do modo
+  // que esta na tela (ativas -> arquivar, arquivadas -> desarquivar).
+  const [arquivandoLote, setArquivandoLote] = useState(false);
   const [maxTestesSimultaneos, setMaxTestesSimultaneos] = useState(3);
   const [runningSelected, setRunningSelected] = useState(false);
 
@@ -334,6 +337,45 @@ export default function TestesAvatarPage() {
     } finally {
       setArquivandoId(null);
     }
+  }
+
+  // Arquiva (na lista de ativas) ou desarquiva (na lista de arquivadas) todas
+  // as selecionadas de uma vez. Otimista como o item do menu: somem da lista na
+  // hora; se alguma for recusada pelo banco, so essas voltam.
+  async function alternarArquivadaSelecionadas() {
+    const arquivada = !verArquivadas;
+    const alvo = tests.filter((t) => selectedIds.includes(t.id) && !!t.arquivada === verArquivadas);
+    if (alvo.length === 0) return;
+    const ids = alvo.map((t) => t.id);
+    setArquivandoLote(true);
+    setError(null);
+    setTests((prev) => prev.map((t) => (ids.includes(t.id) ? { ...t, arquivada } : t)));
+    setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
+    const resultados = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const res = await fetch(`/api/avatar-tests/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ arquivada }),
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          return null;
+        } catch (e: any) {
+          return { id, msg: e?.message || String(e) };
+        }
+      })
+    );
+    const falhas = resultados.filter((r): r is { id: string; msg: string } => r !== null);
+    if (falhas.length > 0) {
+      const idsFalha = falhas.map((f) => f.id);
+      setTests((prev) => prev.map((t) => (idsFalha.includes(t.id) ? { ...t, arquivada: !arquivada } : t)));
+      setError(
+        `${falhas.length} de ${ids.length} não ${arquivada ? "foram arquivadas" : "foram desarquivadas"}: ${falhas[0].msg}`
+      );
+    }
+    setArquivandoLote(false);
   }
 
   function requestDelete(test: AvatarTest) {
@@ -980,7 +1022,12 @@ export default function TestesAvatarPage() {
           <button
             type="button"
             className={`btn-secondary${verArquivadas ? " active" : ""}`}
-            onClick={() => setVerArquivadas((v) => !v)}
+            onClick={() => {
+              // Selecao nao atravessa de uma lista pra outra: o lote age so
+              // no que esta na tela.
+              setVerArquivadas((v) => !v);
+              setSelectedIds([]);
+            }}
             title={
               verArquivadas
                 ? "Voltar para as simulações ativas"
@@ -1425,19 +1472,37 @@ export default function TestesAvatarPage() {
               <span>{selectedIds.length}</span> selecionado{selectedIds.length > 1 ? "s" : ""}
             </div>
             <div className="batch-actions">
-              <label className="checkbox-row" style={{ fontSize: 13 }}>
-                Máx. simultâneos
-                <input
-                  type="number"
-                  min={1}
-                  className="workers-input"
-                  value={maxTestesSimultaneos}
-                  onChange={(e) => setMaxTestesSimultaneos(Math.max(1, Number(e.target.value) || 1))}
-                />
-              </label>
-              <button type="button" className="btn-primary" disabled={runningSelected} onClick={runSelected}>
-                {runningSelected ? "Rodando..." : `Rodar selecionados (${selectedIds.length})`}
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={arquivandoLote || runningSelected}
+                onClick={alternarArquivadaSelecionadas}
+              >
+                {arquivandoLote
+                  ? verArquivadas
+                    ? "Desarquivando..."
+                    : "Arquivando..."
+                  : `${verArquivadas ? "Desarquivar" : "Arquivar"} selecionadas (${selectedIds.length})`}
               </button>
+              {/* Arquivada nao roda em lote: na lista de arquivadas a barra so
+                  serve pra desarquivar. */}
+              {!verArquivadas && (
+                <>
+                  <label className="checkbox-row" style={{ fontSize: 13 }}>
+                    Máx. simultâneos
+                    <input
+                      type="number"
+                      min={1}
+                      className="workers-input"
+                      value={maxTestesSimultaneos}
+                      onChange={(e) => setMaxTestesSimultaneos(Math.max(1, Number(e.target.value) || 1))}
+                    />
+                  </label>
+                  <button type="button" className="btn-primary" disabled={runningSelected} onClick={runSelected}>
+                    {runningSelected ? "Rodando..." : `Rodar selecionados (${selectedIds.length})`}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
