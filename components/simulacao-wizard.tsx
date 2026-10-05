@@ -47,7 +47,7 @@ import {
 const ETAPAS = ["Pessoas", "Cenário", "Turnos", "Dados", "Identificação"] as const;
 
 /** Máximo de turnos de uma conversa sem roteiro (switch de turnos desligado). */
-const MAX_TURNOS_SEM_ROTEIRO = 10;
+const MAX_TURNOS_SEM_ROTEIRO = 5;
 
 const PESSOA_VAZIA: PessoaLinha = {
   nome: "",
