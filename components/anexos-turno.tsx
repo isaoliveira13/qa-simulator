@@ -22,6 +22,7 @@ import {
   tamanhoLegivel,
   tipoAnexoAceito,
 } from "@/lib/anexosTurno";
+import { guardarArquivoDaVisita } from "@/lib/anexosRelatorio";
 
 function IconeClipe({ size = 14 }: { size?: number }) {
   return (
@@ -135,6 +136,8 @@ export function AnexosTurnoEditor({
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         novos.push(data.anexo as AnexoTurno);
+        // O conteúdo continua só aqui no navegador — serve pra prévia no relatório PDF.
+        guardarArquivoDaVisita((data.anexo as AnexoTurno).id, file);
       }
     } catch (e: any) {
       setErro(e?.message || "Falha ao registrar o arquivo.");

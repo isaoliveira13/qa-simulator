@@ -1,5 +1,6 @@
-import { rotuloAnexosTexto } from "./anexosTurno";
-import type { AvatarTest, AvatarTestRun, AvatarTurn } from "./types";
+import { ehImagem } from "./anexosTurno";
+import { chaveAnexo, prepararPreviasAnexos, PreviaImagem } from "./anexosRelatorio";
+import type { AnexoTurno, AvatarTest, AvatarTestRun, AvatarTurn } from "./types";
 import { resumirEmbaralhamento } from "./embaralhar";
 
 /**
@@ -223,6 +224,189 @@ function desenharBalao(
   return yAtual;
 }
 
+// --- balão da pessoa com anexo (05/10/2026) ---
+//
+// Mesmo formato do chat: imagem inteira no topo do balão e o texto embaixo;
+// documento vira um cartão com ícone e a palavra "documento" (sem o nome do
+// arquivo e sem botão de download).
+
+type BlocoAnexo =
+  | { tipo: "imagem"; img: PreviaImagem; largura: number; altura: number }
+  | { tipo: "cartao"; rotulo: string; icone: "documento" | "imagem"; url?: string; altura: number };
+
+const BALAO_PAD_X = 10;
+const BALAO_PAD_Y = 8;
+const BALAO_ROTULO = 11;
+const BALAO_LINHA = 12.5;
+const BALAO_GAP = 8;
+const CARTAO_ALTURA = 40;
+
+function iconeDocumento(doc: any, x: number, y: number) {
+  doc.setDrawColor(...COR_ACCENT);
+  doc.setLineWidth(1.1);
+  doc.lines(
+    [
+      [8, 0],
+      [4, 4],
+      [0, 12],
+      [-12, 0],
+    ],
+    x,
+    y,
+    [1, 1],
+    "S",
+    true
+  );
+  doc.line(x + 8, y, x + 8, y + 4);
+  doc.line(x + 8, y + 4, x + 12, y + 4);
+  doc.line(x + 3, y + 8.5, x + 9, y + 8.5);
+  doc.line(x + 3, y + 11.5, x + 9, y + 11.5);
+}
+
+function iconeImagem(doc: any, x: number, y: number) {
+  doc.setDrawColor(...COR_ACCENT);
+  doc.setLineWidth(1.1);
+  doc.roundedRect(x, y + 1, 15, 13, 2, 2, "S");
+  doc.circle(x + 4.5, y + 5, 1.4, "S");
+  doc.lines(
+    [
+      [4, -4],
+      [3, 3],
+      [2, -2],
+      [4, 4],
+    ],
+    x + 1.5,
+    y + 12,
+    [1, 1],
+    "S",
+    false
+  );
+}
+
+/** Desenha um balão da pessoa com os blocos e as linhas dados (já sabendo que cabem). */
+function desenharCaixaPessoa(
+  doc: any,
+  y: number,
+  blocos: BlocoAnexo[],
+  linhas: string[],
+  continuacao: boolean
+): number {
+  const estilo = BALAO_PESSOA;
+  const largura = LARGURA_UTIL * 0.82;
+  const x = MARGEM + LARGURA_UTIL - largura;
+  const interna = largura - BALAO_PAD_X * 2;
+  const alturaBlocos = blocos.reduce((s, b) => s + b.altura + BALAO_GAP, 0);
+  const altura =
+    BALAO_PAD_Y * 2 + BALAO_ROTULO + alturaBlocos + linhas.length * BALAO_LINHA - (linhas.length ? 0 : BALAO_GAP);
+
+  const yTopo = garantirEspaco(doc, y, altura);
+  doc.setFillColor(...estilo.fundo);
+  doc.setDrawColor(...estilo.borda);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(x, yTopo, largura, altura, 6, 6, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...COR_MUTED);
+  const rotulo = estilo.rotulo.toUpperCase();
+  doc.text(continuacao ? `${rotulo} (CONTINUAÇÃO)` : rotulo, x + BALAO_PAD_X, yTopo + BALAO_PAD_Y + 5);
+
+  let cursor = yTopo + BALAO_PAD_Y + BALAO_ROTULO + 2;
+  for (const b of blocos) {
+    if (b.tipo === "imagem") {
+      const xi = x + BALAO_PAD_X + (interna - b.largura) / 2;
+      doc.addImage(b.img.dataUrl, "JPEG", xi, cursor, b.largura, b.altura);
+    } else {
+      const larguraCartao = Math.min(interna, 190);
+      const xc = x + BALAO_PAD_X;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(...estilo.borda);
+      doc.setLineWidth(0.9);
+      doc.roundedRect(xc, cursor, larguraCartao, b.altura, 6, 6, "FD");
+      const yIcone = cursor + (b.altura - 16) / 2;
+      if (b.icone === "documento") iconeDocumento(doc, xc + 12, yIcone);
+      else iconeImagem(doc, xc + 11, yIcone);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.setTextColor(...COR_TEXTO);
+      doc.text(b.rotulo, xc + 34, cursor + b.altura / 2 + 3.5);
+      if (b.url) doc.link(xc, cursor, larguraCartao, b.altura, { url: b.url });
+    }
+    cursor += b.altura + BALAO_GAP;
+  }
+
+  if (linhas.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...estilo.texto);
+    doc.text(linhas, x + BALAO_PAD_X, cursor + 6);
+  }
+
+  doc.setTextColor(...COR_TEXTO);
+  return yTopo + altura + 6;
+}
+
+/**
+ * Balão da pessoa simulada quando o turno levou arquivo. Tenta tudo num balão
+ * só (anexos + texto); se não couber numa página (texto muito longo ou várias
+ * imagens), cada anexo vai no seu pedaço e o texto segue como continuação.
+ */
+function desenharBalaoPessoaComAnexos(
+  doc: any,
+  y: number,
+  texto: string,
+  anexos: AnexoTurno[],
+  previas: Map<string, PreviaImagem>
+): number {
+  const largura = LARGURA_UTIL * 0.82;
+  const interna = largura - BALAO_PAD_X * 2;
+  const alturaPagina = ALTURA_PAG - RODAPE - MARGEM;
+  // Teto de ~2/3 da página: imagem alta (print de celular) continua inteira,
+  // só menor, e cabe junto com o texto do balão em vez de ocupar uma folha.
+  const alturaMaxImagem = Math.min(520, alturaPagina - BALAO_PAD_Y * 2 - BALAO_ROTULO - 4);
+
+  const blocos: BlocoAnexo[] = anexos.map((a) => {
+    const img = ehImagem(a) ? previas.get(chaveAnexo(a)) : undefined;
+    if (img) {
+      // Imagem inteira: ocupa a largura do balão e, se for muito alta,
+      // encolhe até caber numa página (nunca recorta).
+      let w = interna;
+      let h = (w * img.altura) / img.largura;
+      if (h > alturaMaxImagem) {
+        h = alturaMaxImagem;
+        w = (h * img.largura) / img.altura;
+      }
+      return { tipo: "imagem", img, largura: w, altura: h };
+    }
+    return {
+      tipo: "cartao",
+      rotulo: ehImagem(a) ? "imagem" : "documento",
+      icone: ehImagem(a) ? "imagem" : "documento",
+      url: a.url || undefined,
+      altura: CARTAO_ALTURA,
+    };
+  });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  const limpo = limpar(texto).trim();
+  const linhas: string[] = limpo ? doc.splitTextToSize(limpo, interna) : [];
+
+  const total =
+    BALAO_PAD_Y * 2 +
+    BALAO_ROTULO +
+    blocos.reduce((s, b) => s + b.altura + BALAO_GAP, 0) +
+    linhas.length * BALAO_LINHA;
+  if (total <= alturaPagina) return desenharCaixaPessoa(doc, y, blocos, linhas, false);
+
+  let yAtual = y;
+  blocos.forEach((b, i) => {
+    yAtual = desenharCaixaPessoa(doc, yAtual, [b], [], i > 0);
+  });
+  if (limpo) yAtual = desenharBalao(doc, yAtual, limpo, "direita", BALAO_PESSOA);
+  return yAtual;
+}
+
 /** "Turno 2" centralizado, separando um par de balões do próximo. */
 function desenharSeparadorTurno(doc: any, y: number, turno: number): number {
   const yAtual = garantirEspaco(doc, y, 20);
@@ -319,6 +503,12 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
 
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
+
+  // Imagens que a pessoa simulada mandou, carregadas antes de desenhar (vão
+  // dentro do balão dela). Imagem que não carregar vira cartão "imagem".
+  const previas = await prepararPreviasAnexos(
+    runs.flatMap((r) => (r.transcricao || []).flatMap((t) => t.anexos || []))
+  );
 
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const agora = new Date();
@@ -479,10 +669,12 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
       } else {
         turnos.forEach((t) => {
           y = desenharSeparadorTurno(doc, y, t.turno);
-          // Anexo vai como texto no balão (jsPDF não desenha emoji nem prévia).
-          const anexoTexto = rotuloAnexosTexto(t.anexos);
-          const falaPessoa = [t.enviado, anexoTexto].filter((x) => x && String(x).trim()).join("\n");
-          y = desenharBalao(doc, y, falaPessoa, "direita", BALAO_PESSOA);
+          // Com arquivo, o balão segue o formato do chat (imagem dentro do
+          // balão / cartão "documento"); sem arquivo, o balão de sempre.
+          y =
+            t.anexos && t.anexos.length
+              ? desenharBalaoPessoaComAnexos(doc, y, t.enviado, t.anexos, previas)
+              : desenharBalao(doc, y, t.enviado, "direita", BALAO_PESSOA);
           y = desenharBalao(doc, y, t.resposta_avatar, "esquerda", BALAO_AVATAR);
           y += 2;
         });
