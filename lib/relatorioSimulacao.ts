@@ -40,6 +40,7 @@ const COR_MUTED: RGB = [107, 114, 128];
 const COR_ACCENT: RGB = [79, 70, 229];
 const COR_SUCESSO: RGB = [22, 163, 74];
 const COR_FALHA: RGB = [185, 28, 28];
+const COR_BARRA: RGB = [79, 70, 229];
 
 const BALAO_PESSOA = {
   fundo: [238, 240, 255] as RGB,
@@ -142,11 +143,18 @@ function agrupar(runs: AvatarTestRun[], testsById: Map<string, AvatarTest>): Gru
 
 // --- desenho ---
 
+/**
+ * Onde o conteudo comeca numa pagina nova. Fica abaixo de MARGEM enquanto se
+ * desenha a conversa de uma pessoa, porque cada pagina dela ganha a barra de
+ * cabecalho repetida no topo (como a linha congelada de uma planilha).
+ */
+let topoPagina = MARGEM;
+
 /** Devolve o y do topo do conteudo depois de virar de pagina, se precisar. */
 function garantirEspaco(doc: any, y: number, precisa: number): number {
   if (y + precisa <= ALTURA_PAG - RODAPE) return y;
   doc.addPage();
-  return MARGEM;
+  return topoPagina;
 }
 
 /**
@@ -187,7 +195,7 @@ function desenharBalao(
     // Nao cabe inteiro nem vale cortar: vira a pagina e recomeca.
     if (cabemAqui < restantes.length && cabemAqui < MIN_LINHAS_NO_PEDACO) {
       doc.addPage();
-      yAtual = MARGEM;
+      yAtual = topoPagina;
       continue;
     }
 
@@ -351,16 +359,16 @@ function desenharCaixaPessoa(
  * só (anexos + texto); se não couber numa página (texto muito longo ou várias
  * imagens), cada anexo vai no seu pedaço e o texto segue como continuação.
  */
-function desenharBalaoPessoaComAnexos(
+function montarBalaoPessoa(
   doc: any,
-  y: number,
   texto: string,
   anexos: AnexoTurno[],
   previas: Map<string, PreviaImagem>
-): number {
+) {
   const largura = LARGURA_UTIL * 0.82;
   const interna = largura - BALAO_PAD_X * 2;
-  const alturaPagina = ALTURA_PAG - RODAPE - MARGEM;
+  // Altura útil de uma página nova (já descontando a barra repetida da conversa).
+  const alturaPagina = ALTURA_PAG - RODAPE - topoPagina;
   // Teto de ~2/3 da página: imagem alta (print de celular) continua inteira,
   // só menor, e cabe junto com o texto do balão em vez de ocupar uma folha.
   const alturaMaxImagem = Math.min(520, alturaPagina - BALAO_PAD_Y * 2 - BALAO_ROTULO - 4);
@@ -397,7 +405,37 @@ function desenharBalaoPessoaComAnexos(
     BALAO_ROTULO +
     blocos.reduce((s, b) => s + b.altura + BALAO_GAP, 0) +
     linhas.length * BALAO_LINHA;
-  if (total <= alturaPagina) return desenharCaixaPessoa(doc, y, blocos, linhas, false);
+  return { blocos, linhas, limpo, total, cabeNumaPagina: total <= alturaPagina };
+}
+
+/**
+ * Quanto o balão da pessoa precisa de espaço livre pra começar (o balão
+ * inteiro quando cabe numa página; senão o primeiro pedaço). Usado pelo
+ * separador "TURNO N" pra ir pra página seguinte junto com o balão.
+ */
+function alturaInicialPessoa(doc: any, t: AvatarTurn, previas: Map<string, PreviaImagem>): number {
+  if (t.anexos && t.anexos.length) {
+    const m = montarBalaoPessoa(doc, t.enviado, t.anexos, previas);
+    if (m.cabeNumaPagina) return m.total;
+    const b = m.blocos[0];
+    return BALAO_PAD_Y * 2 + BALAO_ROTULO + b.altura;
+  }
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  const linhas: string[] = doc.splitTextToSize(limpar(t.enviado) || "(mensagem vazia)", LARGURA_UTIL * 0.82 - 20);
+  // o balão de texto aceita ser cortado depois de 4 linhas
+  return BALAO_PAD_Y * 2 + BALAO_ROTULO + Math.min(linhas.length, 4) * BALAO_LINHA;
+}
+
+function desenharBalaoPessoaComAnexos(
+  doc: any,
+  y: number,
+  texto: string,
+  anexos: AnexoTurno[],
+  previas: Map<string, PreviaImagem>
+): number {
+  const { blocos, linhas, limpo, cabeNumaPagina } = montarBalaoPessoa(doc, texto, anexos, previas);
+  if (cabeNumaPagina) return desenharCaixaPessoa(doc, y, blocos, linhas, false);
 
   let yAtual = y;
   blocos.forEach((b, i) => {
@@ -407,9 +445,69 @@ function desenharBalaoPessoaComAnexos(
   return yAtual;
 }
 
+// --- barra de cabecalho da conversa (05/10/2026) ---
+
+const ALTURA_BARRA = 24;
+
+/**
+ * Barra cheia, tipo cabecalho de planilha: nome da pessoa a esquerda e, a
+ * direita, a pilula do resultado + turnos + tempo. Vai no topo da primeira
+ * pagina da conversa e se repete (com "continuação") nas seguintes.
+ */
+function desenharBarraConversa(doc: any, y: number, run: AvatarTestRun, continuacao: boolean): number {
+  doc.setFillColor(...COR_BARRA);
+  doc.rect(MARGEM, y, LARGURA_UTIL, ALTURA_BARRA, "F");
+  const meio = y + ALTURA_BARRA / 2;
+
+  // direita: "1 turno · 29.22s" e, antes, a pilula do resultado
+  const turnos = run.totalTurnos ?? 0;
+  const info =
+    `${turnos} turno${turnos === 1 ? "" : "s"}` + (run.tempoSegundos != null ? ` · ${run.tempoSegundos}s` : "");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  const xInfo = LARGURA_PAG - MARGEM - 10;
+  doc.text(info, xInfo, meio + 3.2, { align: "right" });
+  const larguraInfo = doc.getTextWidth(info);
+
+  const resultado = run.resultado || "SEM VEREDITO";
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  const larguraPilula = doc.getTextWidth(resultado) + 14;
+  const xPilula = xInfo - larguraInfo - 10 - larguraPilula;
+  doc.setFillColor(...corDoResultado(run.resultado));
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(xPilula, meio - 7.5, larguraPilula, 15, 7.5, 7.5, "FD");
+  doc.text(resultado, xPilula + larguraPilula / 2, meio + 2.9, { align: "center" });
+
+  // esquerda: nome (corta com "..." se encostar na pilula)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  let nome = limpar(run.personaNome) || "Conversa única";
+  const sufixo = continuacao ? " (continuação)" : "";
+  const espaco = xPilula - (MARGEM + 10) - 10 - (sufixo ? doc.getTextWidth(sufixo) : 0);
+  if (doc.getTextWidth(nome) > espaco) {
+    while (nome.length > 1 && doc.getTextWidth(nome + "…") > espaco) nome = nome.slice(0, -1);
+    nome = nome + "…";
+  }
+  doc.text(nome, MARGEM + 10, meio + 3.8);
+  if (sufixo) {
+    const larguraNome = doc.getTextWidth(nome);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(sufixo, MARGEM + 10 + larguraNome, meio + 3.8);
+  }
+
+  doc.setTextColor(...COR_TEXTO);
+  return y + ALTURA_BARRA + 10;
+}
+
 /** "Turno 2" centralizado, separando um par de balões do próximo. */
-function desenharSeparadorTurno(doc: any, y: number, turno: number): number {
-  const yAtual = garantirEspaco(doc, y, 20);
+function desenharSeparadorTurno(doc: any, y: number, turno: number, alturaSeguinte = 0): number {
+  // Reserva o separador + o começo do balão da pessoa: "TURNO N" nunca fica
+  // sozinho no pé da página com a mensagem na folha seguinte.
+  const yAtual = garantirEspaco(doc, y, 14 + Math.max(alturaSeguinte, 20));
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(...COR_MUTED);
@@ -519,6 +617,7 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
   const outros = runs.length - sucesso - falha;
 
   // --- capa curta (nao gasta uma pagina inteira: e so o topo da primeira) ---
+  topoPagina = MARGEM;
   let y = MARGEM;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
@@ -606,40 +705,22 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
     });
     y = (doc as any).lastAutoTable.finalY + 20;
 
-    // 3. troca de mensagens
-    y = desenharTitulo(doc, y, "Troca de mensagens", 10.5, COR_TEXTO);
+    // 3. troca de mensagens — uma conversa por bloco de paginas, cada uma
+    // aberta pela barra com o nome da pessoa (o titulo da secao saiu: a barra
+    // ja diz o que e, e assim a pagina de uma conversa so tem ela).
 
-    grupo.runs.forEach((run, indiceConversa) => {
-      // Espaco pra linha + nome + o comeco do primeiro balao: sem isso o
-      // cabecalho de uma pessoa ficava sozinho no pe da pagina.
-      y = garantirEspaco(doc, y, 110);
+    grupo.runs.forEach((run) => {
+      // Cada pessoa comeca em pagina propria (05/10/2026): pra imprimir uma
+      // conversa basta escolher da pagina inicial a final dela, sem pegar
+      // pedaco da ficha nem de outra conversa.
+      doc.addPage();
+      y = MARGEM;
 
-      // Linha divisoria: e o que faz saltar aos olhos onde termina a conversa
-      // de uma pessoa e comeca a da proxima (pedido da Isa, 04/09/2026).
-      if (indiceConversa > 0) y += 6;
-      doc.setDrawColor(214, 217, 226);
-      doc.setLineWidth(0.7);
-      doc.line(MARGEM, y, LARGURA_PAG - MARGEM, y);
-      y += 12;
-
-      // Cabecalho da conversa: nome da pessoa + pilula do resultado.
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(...COR_TEXTO);
-      const nome = limpar(run.personaNome) || "Conversa única";
-      doc.text(nome, MARGEM, y + 8);
-
-      const larguraNome = doc.getTextWidth(nome);
-      doc.setFontSize(8);
-      doc.setTextColor(...corDoResultado(run.resultado));
-      doc.text(
-        `${run.resultado || "—"} · ${run.totalTurnos ?? 0} turno${(run.totalTurnos ?? 0) === 1 ? "" : "s"}` +
-          (run.tempoSegundos != null ? ` · ${run.tempoSegundos}s` : ""),
-        MARGEM + larguraNome + 10,
-        y + 8
-      );
-      doc.setTextColor(...COR_TEXTO);
-      y += 16;
+      const paginaInicial = (doc as any).internal.getNumberOfPages();
+      y = desenharBarraConversa(doc, y, run, false);
+      // Daqui ate o fim desta conversa, toda pagina nova reserva o topo pra
+      // barra repetida (desenhada no fim, quando se sabe quantas paginas foram).
+      topoPagina = MARGEM + ALTURA_BARRA + 10;
 
       if (run.embaralhamento) {
         doc.setFont("helvetica", "italic");
@@ -668,7 +749,7 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
         y += 22;
       } else {
         turnos.forEach((t) => {
-          y = desenharSeparadorTurno(doc, y, t.turno);
+          y = desenharSeparadorTurno(doc, y, t.turno, alturaInicialPessoa(doc, t, previas));
           // Com arquivo, o balão segue o formato do chat (imagem dentro do
           // balão / cartão "documento"); sem arquivo, o balão de sempre.
           y =
@@ -679,6 +760,15 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
           y += 2;
         });
       }
+
+      // Barra repetida no topo das paginas seguintes desta conversa.
+      const paginaFinal = (doc as any).internal.getNumberOfPages();
+      for (let pagina = paginaInicial + 1; pagina <= paginaFinal; pagina++) {
+        doc.setPage(pagina);
+        desenharBarraConversa(doc, MARGEM, run, true);
+      }
+      doc.setPage(paginaFinal);
+      topoPagina = MARGEM;
 
       y += 10;
     });
