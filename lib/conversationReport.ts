@@ -43,6 +43,14 @@ export function construirRelatorioHTML({ titulo, d, cenario, criterio }: Convers
         "</div>" +
         '<div class="sim-line"><strong>Simulador:</strong> ' +
         escapeHTML(t.enviado || "") +
+        (t.anexos && t.anexos.length
+          ? " " +
+            t.anexos
+              .map(
+                (a) => '<span class="anexo-link">📎 ' + escapeHTML(a.nome) + "</span>"
+              )
+              .join(" ")
+          : "") +
         "</div>" +
         '<div class="avatar-line"><strong>Avatar:</strong> ' +
         escapeHTML(t.resposta_avatar || "(sem resposta)") +

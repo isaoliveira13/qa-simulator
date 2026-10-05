@@ -92,7 +92,17 @@ export function preencherRoteiro(
 
 /** O roteiro tem algo pra valer? Linha "livre" sozinha nao muda nada. */
 export function roteiroTemConteudo(roteiro: TurnoRoteiro[] | null | undefined): boolean {
-  return !!roteiro && roteiro.some((t) => t.modo !== "livre" && t.texto.trim().length > 0);
+  return !!roteiro && roteiro.some(linhaTemConteudo);
+}
+
+/**
+ * A linha manda algo de concreto? Texto escrito (exato/instrucao) ou um
+ * arquivo anexado (05/10/2026) — inclusive em "livre": um turno livre com PDF
+ * e a IA improvisando a fala e o arquivo indo junto, entao ha o que esperar.
+ */
+export function linhaTemConteudo(t: TurnoRoteiro): boolean {
+  if (Array.isArray(t.anexos) && t.anexos.length > 0) return true;
+  return t.modo !== "livre" && t.texto.trim().length > 0;
 }
 
 /**
@@ -111,7 +121,7 @@ export function roteiroTemTurnoDepoisDe(
   turnoJaEnviado: number
 ): boolean {
   if (!roteiro || roteiro.length === 0) return false;
-  const escritas = roteiro.filter((t) => t.modo !== "livre" && t.texto.trim().length > 0);
+  const escritas = roteiro.filter(linhaTemConteudo);
   if (escritas.some((t) => t.emDiante)) return true;
   return escritas.some((t) => t.turno > turnoJaEnviado);
 }

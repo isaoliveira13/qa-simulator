@@ -45,6 +45,12 @@ locais de texto fictício** — ver detalhes abaixo.
 - **Limites da demo**, pra não sobrecarregar: no máximo **10 pessoas** por
   lote e no máximo **10 turnos** por conversa, mesmo que um número maior
   seja configurado numa simulação salva.
+- **Anexos nos turnos (imagem/PDF) não são enviados.** No roteiro de turnos dá
+  pra anexar imagem ou PDF a qualquer turno (sozinho ou com texto), como no
+  projeto real — mas aqui o arquivo **nunca sai do seu navegador**: só o nome,
+  o tipo e o tamanho ficam registrados, e o avatar fictício só "acusa o
+  recebimento". No projeto real o arquivo é guardado e vai junto com a
+  mensagem pro avatar.
 - **Nada é salvo nem compartilhado de verdade.** Não há banco de dados —
   tudo (simulações, personas, cenários, avatares, histórico) vive só na
   memória do servidor, começa com alguns exemplos prontos e **reinicia

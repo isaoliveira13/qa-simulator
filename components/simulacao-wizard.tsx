@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IconCheck } from "@/app/icons";
 import {
   AvatarTest,
@@ -27,6 +27,8 @@ import {
   TEMPLATE_CENARIO_PADRAO,
 } from "@/lib/personaTemplate";
 import { PersonaPickerModal } from "@/components/persona-picker";
+import { AnexosTurnoEditor } from "@/components/anexos-turno";
+import { anexosDaLinha } from "@/lib/anexosTurno";
 import { ScenarioPickerModal } from "@/components/scenario-picker";
 import { CenarioActions } from "@/components/cenario-actions";
 import { TagPopover } from "@/components/tag-popover";
@@ -43,6 +45,9 @@ import {
 } from "@/lib/embaralhar";
 
 const ETAPAS = ["Pessoas", "Cenário", "Turnos", "Dados", "Identificação"] as const;
+
+/** Máximo de turnos de uma conversa sem roteiro (switch de turnos desligado). */
+const MAX_TURNOS_SEM_ROTEIRO = 10;
 
 const PESSOA_VAZIA: PessoaLinha = {
   nome: "",
@@ -202,11 +207,20 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
   const [draftCriterioPessoa, setDraftCriterioPessoa] = useState("");
 
   // ---- etapa 3: turnos ----
-  const [maxTurnos, setMaxTurnos] = useState("10");
+  const [maxTurnos, setMaxTurnos] = useState(String(MAX_TURNOS_SEM_ROTEIRO));
   const [maxSimultaneos, setMaxSimultaneos] = useState(3);
   const [mensagensPorTurno, setMensagensPorTurno] = useState(false);
   const [roteiro, setRoteiro] = useState<TurnoRoteiro[]>([]);
   const [rodarRoteiroCompleto, setRodarRoteiroCompleto] = useState(false);
+  // "Máximo de turnos" acompanha o roteiro (05/10/2026): com o switch de
+  // turnos ligado, o máximo é a quantidade de turnos adicionados — cada
+  // "+ Adicionar turno" soma 1, cada remoção tira 1. Se ela digitar um número
+  // MAIOR, o máximo passa a ser dela (a conversa segue livre depois do
+  // roteiro) e para de acompanhar; digitar um número igual ou menor volta a
+  // acompanhar. Nunca fica abaixo do roteiro: os turnos escritos sempre rodam.
+  // É ref, não state, de propósito: mudar este modo não pode disparar o
+  // efeito que reajusta o número (atrapalharia quem está digitando "12").
+  const maxSegueRoteiro = useRef(true);
 
   // ---- etapa 4: dados ----
   const [embaralharDados, setEmbaralharDados] = useState(false);
@@ -221,6 +235,10 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
   const [tags, setTags] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
+  // Upload de anexo em andamento, por linha do roteiro: enquanto houver
+  // algum, o Salvar espera (o turno ainda não tem a URL do arquivo).
+  const [enviandoAnexo, setEnviandoAnexo] = useState<Record<number, boolean>>({});
+  const algumAnexoEnviando = Object.values(enviandoAnexo).some(Boolean);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -270,7 +288,12 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
       },
     ]);
     setFonteAtiva("salvoNaSimulacao");
-    setMaxTurnos(String(initial.maxTurnos ?? 10));
+    setMaxTurnos(String(initial.maxTurnos ?? MAX_TURNOS_SEM_ROTEIRO));
+    // Simulação salva com máximo acima do roteiro: o número foi escolhido por
+    // ela, então fica. Igual ou abaixo (ou switch desligado): acompanha.
+    maxSegueRoteiro.current =
+      !initial.mensagensPorTurno ||
+      (initial.maxTurnos ?? 0) <= (initial.roteiroTurnos || []).length;
     setMaxSimultaneos(initial.maxSimultaneos || Math.max(1, (initial.pessoas || []).length || 1));
     setMensagensPorTurno(!!initial.mensagensPorTurno);
     setRodarRoteiroCompleto(!!initial.rodarRoteiroCompleto);
@@ -281,7 +304,8 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
       normalizarRoteiro(
         (initial.roteiroTurnos || []).map((t) => ({
           ...t,
-          confirmado: t.confirmado ?? (t.modo === "livre" || !!t.texto.trim()),
+          confirmado:
+            t.confirmado ?? (t.modo === "livre" || !!t.texto.trim() || anexosDaLinha(t).length > 0),
         }))
       )
     );
@@ -580,6 +604,28 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
     setRoteiro((atual) => normalizarRoteiro(fn(atual)));
   }
 
+  const qtdTurnosRoteiro = roteiro.length;
+  useEffect(() => {
+    if (!mensagensPorTurno || qtdTurnosRoteiro === 0) return;
+    setMaxTurnos((atual) => {
+      const n = Number(atual) || 0;
+      return maxSegueRoteiro.current || n < qtdTurnosRoteiro ? String(qtdTurnosRoteiro) : atual;
+    });
+  }, [mensagensPorTurno, qtdTurnosRoteiro]);
+
+  /** Ao sair do campo: decide se o número digitado é "dela" ou volta a acompanhar o roteiro. */
+  function confirmarMaxTurnos() {
+    if (!mensagensPorTurno || qtdTurnosRoteiro === 0) return;
+    const n = Math.floor(Number(maxTurnos) || 0);
+    if (n > qtdTurnosRoteiro) {
+      maxSegueRoteiro.current = false;
+      setMaxTurnos(String(n));
+    } else {
+      maxSegueRoteiro.current = true;
+      setMaxTurnos(String(qtdTurnosRoteiro));
+    }
+  }
+
   function adicionarTurno() {
     // Ligar o switch com o roteiro vazio ja abre o turno 1; daqui em diante
     // cada clique acrescenta um turno no fim.
@@ -622,11 +668,19 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
       if (!roteiroTemConteudo(roteiro)) {
         p.push({ etapa: 2, msg: "Escreva pelo menos o turno 1 do roteiro na etapa 3." });
       } else {
-        const vazio = roteiro.find((t) => t.modo !== "livre" && !t.texto.trim());
+        // Texto exato pode ir vazio quando o turno leva arquivo (05/10/2026):
+        // a mensagem é o arquivo sozinho. Instrução sem texto continua erro —
+        // pra "a IA escreve o que quiser + arquivo", o modo é "livre".
+        const vazio = roteiro.find(
+          (t) => t.modo !== "livre" && !t.texto.trim() && !(t.modo === "exato" && anexosDaLinha(t).length)
+        );
         if (vazio) {
           p.push({
             etapa: 2,
-            msg: `O turno ${vazio.turno} do roteiro está sem texto — escreva ou mude o modo para "livre".`,
+            msg:
+              vazio.modo === "exato"
+                ? `O turno ${vazio.turno} do roteiro está sem texto e sem anexo — escreva, anexe um arquivo ou mude o modo para "livre".`
+                : `O turno ${vazio.turno} do roteiro está sem a instrução — escreva o que a IA deve fazer ou mude o modo para "livre".`,
           });
         }
       }
@@ -1052,10 +1106,23 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
           <div className="field-grid">
             <div className="field">
               <label>Máximo de turnos</label>
-              <input type="number" min={1} max={10} value={maxTurnos} onChange={(e) => setMaxTurnos(e.target.value)} />
+              <input
+                type="number"
+                min={mensagensPorTurno && qtdTurnosRoteiro > 0 ? qtdTurnosRoteiro : 1}
+                max={Math.max(10, qtdTurnosRoteiro)}
+                value={maxTurnos}
+                onChange={(e) => setMaxTurnos(e.target.value)}
+                onBlur={confirmarMaxTurnos}
+              />
               <p className="hint">
-                A conversa encerra sozinha ao bater esse limite. Nesta demo, o máximo é 10 turnos, mesmo se um número
-                maior for digitado aqui.
+                {mensagensPorTurno && qtdTurnosRoteiro > 0
+                  ? Number(maxTurnos) > qtdTurnosRoteiro
+                    ? `${qtdTurnosRoteiro} ${qtdTurnosRoteiro === 1 ? "turno" : "turnos"} do roteiro + ${
+                        Number(maxTurnos) - qtdTurnosRoteiro
+                      } livres depois dele. Volte para ${qtdTurnosRoteiro} para acompanhar o roteiro de novo.`
+                    : `Acompanha os turnos adicionados no roteiro (${qtdTurnosRoteiro}). Aumente se quiser que a conversa siga livre depois do roteiro.`
+                  : "A conversa encerra sozinha ao bater esse limite."}{" "}
+                Nesta demo, o máximo é 10 turnos, mesmo se um número maior for digitado aqui.
               </p>
             </div>
             {slots.length > 1 && (
@@ -1087,6 +1154,12 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
                     // switch e não ver nada aparecer é o jeito mais rápido de
                     // achar que ele não faz nada.
                     if (e.target.checked && roteiro.length === 0) mexerNoRoteiro(() => [turnoVazio(1)]);
+                    // Desligar com o máximo acompanhando o roteiro devolve o
+                    // padrão da conversa livre — sem roteiro, "1 turno" não
+                    // faria sentido. Um máximo escolhido por ela fica.
+                    if (!e.target.checked && maxSegueRoteiro.current) {
+                      setMaxTurnos(String(MAX_TURNOS_SEM_ROTEIRO));
+                    }
                   }}
                 />
                 <span className="toggle-slider" />
@@ -1108,6 +1181,22 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
                   // começa por algum lugar) e não faz sentido "deste turno em
                   // diante" quando ele é a única linha.
                   const abertura = idx === 0;
+                  const editorAnexos = (
+                    <AnexosTurnoEditor
+                      turno={t.turno}
+                      anexos={anexosDaLinha(t)}
+                      onEnviandoChange={(v) => setEnviandoAnexo((m) => ({ ...m, [idx]: v }))}
+                      onChange={(anexos) =>
+                        // Mesmo princípio do texto: o contorno verde vale
+                        // pro que está no turno agora. "Livre" não tem o
+                        // que confirmar, então segue confirmado.
+                        atualizarTurno(idx, {
+                          anexos,
+                          confirmado: t.modo === "livre" ? t.confirmado : false,
+                        })
+                      }
+                    />
+                  );
                   return (
                     <div className={`roteiro-linha${t.confirmado ? " confirmada" : ""}`} key={idx}>
                       <span className="roteiro-num">
@@ -1167,7 +1256,11 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
                             {abertura
                               ? "Abertura sem exigência: a IA escreve sozinha a primeira mensagem, a partir do cenário."
                               : "Turno sem exigência: a pessoa simulada responde o avatar normalmente, a partir do cenário."}
+                            {anexosDaLinha(t).length > 0 && " O arquivo anexado vai junto com o que a IA escrever."}
                           </p>
+                        ) : null}
+                        {t.modo === "livre" ? (
+                          editorAnexos
                         ) : (
                           <>
                             <textarea
@@ -1183,12 +1276,13 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
                                 t.modo === "exato"
                                   ? abertura
                                     ? "A frase exata com que ela abre a conversa. Ex.: Olá! Gostaria de mais informações."
-                                    : "A frase exata que ela envia. Ex.: Meu nome é: {nome} e eu amo pizza"
+                                    : "A frase exata que ela envia. Ex.: Meu nome é: {nome} e eu amo pizza — ou deixe vazio e anexe só o arquivo"
                                   : abertura
                                     ? "Como ela deve abrir a conversa, com as palavras dela. Ex.: PEÇA a segunda via do boleto"
                                     : "O que ela deve fazer, com as palavras dela. Ex.: DIGA que ama pizza"
                               }
                             />
+                            {editorAnexos}
                             <div className="roteiro-confirma">
                               {t.confirmado ? (
                                 <span className="roteiro-confirmado">
@@ -1198,7 +1292,7 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
                                 <button
                                   type="button"
                                   className="btn-secondary"
-                                  disabled={!t.texto.trim()}
+                                  disabled={!t.texto.trim() && !(t.modo === "exato" && anexosDaLinha(t).length)}
                                   onClick={() => atualizarTurno(idx, { confirmado: true })}
                                 >
                                   Confirmar turno {t.turno}
@@ -1238,7 +1332,9 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
 
                 <p className="hint" style={{ marginBottom: 0 }}>
                   {roteiro.some((t) => t.emDiante)
-                    ? `Do turno ${roteiro[roteiro.length - 1].turno} em diante a última linha se repete até a conversa acabar.`
+                    ? Number(maxTurnos) > roteiro.length
+                      ? `Do turno ${roteiro[roteiro.length - 1].turno} em diante a última linha se repete até a conversa acabar (turno ${Number(maxTurnos)}).`
+                      : `Do turno ${roteiro[roteiro.length - 1].turno} em diante a última linha se repete até a conversa acabar — aumente o Máximo de turnos acima para ela se repetir mais vezes.`
                     : "Quando o roteiro acaba, a conversa segue livre até o máximo de turnos — como se o switch estivesse desligado dali pra frente."}
                 </p>
 
@@ -1676,6 +1772,10 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
                       {mensagensPorTurno && roteiro.length && rodarRoteiroCompleto
                         ? " · roda o roteiro inteiro"
                         : ""}
+                      {(() => {
+                        const n = mensagensPorTurno ? roteiro.reduce((s, t) => s + anexosDaLinha(t).length, 0) : 0;
+                        return n ? ` · ${n} ${n === 1 ? "anexo" : "anexos"}` : "";
+                      })()}
                     </td>
                     <td className="eff-actions">
                       <button type="button" className="btn-link-accent" onClick={() => setEtapa(2)}>
@@ -1723,8 +1823,13 @@ export function SimulacaoWizard({ initial, onSaved, onCancel, etapaInicial }: Pr
           {etapa === ETAPAS.length - 1 && (
             // Um botão só: salvar. Rodar é no switch do card, na lista de
             // Simulações, onde o ambiente e o avatar são escolhidos.
-            <button type="button" className="btn-primary" disabled={saving} onClick={() => salvar()}>
-              {saving ? "Salvando..." : "Salvar"}
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={saving || algumAnexoEnviando}
+              onClick={() => salvar()}
+            >
+              {saving ? "Salvando..." : algumAnexoEnviando ? "Enviando anexo..." : "Salvar"}
             </button>
           )}
         </div>

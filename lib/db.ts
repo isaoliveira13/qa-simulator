@@ -11,8 +11,10 @@ import {
   SubavatarCadastro,
   TurnoRoteiro,
   Tag,
+  AnexoTurno,
 } from "./types";
 import { slugify } from "./slug";
+import { anexosDaLinha, idsDeAnexosDoRoteiro } from "./anexosTurno";
 
 /**
  * MODO DEMO — este arquivo substitui inteiramente o Postgres original.
@@ -43,6 +45,14 @@ interface Store {
   personas: Persona[];
   scenarios: Scenario[];
   avatarTestBatches: AvatarTestBatch[];
+  /**
+   * "Tabela" de anexos dos turnos do roteiro (05/10/2026) — no projeto real é
+   * a tabela `avatar_test_anexos` do Postgres. Uma linha por arquivo, dona de
+   * uma simulação (`avatarTestId` nulo = registrado no assistente de uma
+   * simulação ainda não salva). MODO DEMO: só nome/tipo/tamanho, nunca o
+   * arquivo.
+   */
+  anexos: (AnexoTurno & { avatarTestId: string | null; criadoEm: number })[];
   avatars: AvatarCadastro[];
 }
 
@@ -218,6 +228,7 @@ function seed(): Store {
       },
     ],
     avatarTestBatches: [],
+    anexos: [],
   };
 }
 
@@ -357,7 +368,9 @@ export async function createAvatarTest(input: {
     mensagensPorTurno: input.mensagensPorTurno ?? false,
     embaralharDados: input.embaralharDados ?? false,
     ...(input.embaralharConfig ? { embaralharConfig: input.embaralharConfig } : {}),
-    ...(input.roteiroTurnos && input.roteiroTurnos.length ? { roteiroTurnos: input.roteiroTurnos } : {}),
+    ...(input.roteiroTurnos && input.roteiroTurnos.length
+      ? { roteiroTurnos: sincronizarAnexosDaSimulacao(id, input.roteiroTurnos) }
+      : {}),
     rodarRoteiroCompleto: input.rodarRoteiroCompleto ?? false,
     arquivada: false,
     ordem: maiorOrdem + 1,
@@ -446,7 +459,8 @@ export async function updateAvatarTest(
   if (changes.mensagensPorTurno !== undefined) existing.mensagensPorTurno = changes.mensagensPorTurno;
   if (changes.rodarRoteiroCompleto !== undefined) existing.rodarRoteiroCompleto = changes.rodarRoteiroCompleto;
   if (changes.roteiroTurnos !== undefined) {
-    if (changes.roteiroTurnos && changes.roteiroTurnos.length) existing.roteiroTurnos = changes.roteiroTurnos;
+    const sincronizado = sincronizarAnexosDaSimulacao(id, changes.roteiroTurnos || []);
+    if (sincronizado.length) existing.roteiroTurnos = sincronizado;
     else delete existing.roteiroTurnos;
   }
   if (changes.embaralharDados !== undefined) existing.embaralharDados = changes.embaralharDados;
@@ -464,7 +478,63 @@ export async function deleteAvatarTest(id: string): Promise<boolean> {
   const s = store();
   const before = s.avatarTests.length;
   s.avatarTests = s.avatarTests.filter((t) => t.id !== id);
+  s.anexos = s.anexos.filter((a) => a.avatarTestId !== id);
   return s.avatarTests.length < before;
+}
+
+// --- Anexos dos turnos do roteiro (05/10/2026) ---
+
+/**
+ * Registra um anexo escolhido no assistente. Nasce sem dono; ganha dono no
+ * "Salvar" (sincronizarAnexosDaSimulacao). Varre de passagem os registros sem
+ * dono com mais de 1 hora (assistente abandonado).
+ */
+export async function registrarAnexo(input: { nome: string; tipo: string; tamanho: number }): Promise<AnexoTurno> {
+  const s = store();
+  const agora = Date.now();
+  s.anexos = s.anexos.filter((a) => a.avatarTestId || agora - a.criadoEm < 60 * 60 * 1000);
+  const anexo: AnexoTurno = {
+    id: randomUUID(),
+    nome: input.nome,
+    url: "",
+    tipo: input.tipo,
+    tamanho: Math.round(input.tamanho) || 0,
+  };
+  s.anexos.push({ ...anexo, avatarTestId: null, criadoEm: agora });
+  return clone(anexo);
+}
+
+/**
+ * Deixa a "tabela" de anexos igual ao que o roteiro desta simulação cita e
+ * devolve o roteiro com os anexos conferidos — mesmas regras do projeto real:
+ * anexo sem dono vira desta simulação; anexo de outra simulação (Duplicar)
+ * ganha um registro próprio; anexo que não existe sai do turno; registro
+ * desta simulação que o roteiro não cita mais é apagado.
+ */
+function sincronizarAnexosDaSimulacao(avatarTestId: string, roteiro: TurnoRoteiro[]): TurnoRoteiro[] {
+  const s = store();
+  const final = new Map<string, AnexoTurno>();
+  for (const anexoId of idsDeAnexosDoRoteiro(roteiro)) {
+    const row = s.anexos.find((a) => a.id === anexoId);
+    if (!row) continue;
+    if (!row.avatarTestId || row.avatarTestId === avatarTestId) {
+      row.avatarTestId = avatarTestId;
+      final.set(anexoId, { id: row.id, nome: row.nome, url: row.url, tipo: row.tipo, tamanho: row.tamanho });
+    } else {
+      const copia: AnexoTurno = { id: randomUUID(), nome: row.nome, url: row.url, tipo: row.tipo, tamanho: row.tamanho };
+      s.anexos.push({ ...copia, avatarTestId, criadoEm: Date.now() });
+      final.set(anexoId, copia);
+    }
+  }
+  const manter = new Set(Array.from(final.values()).map((a) => a.id));
+  s.anexos = s.anexos.filter((a) => a.avatarTestId !== avatarTestId || manter.has(a.id));
+  return roteiro.map((t) => {
+    const anexos = anexosDaLinha(t)
+      .map((a) => final.get(a.id))
+      .filter((a): a is AnexoTurno => !!a);
+    const { anexos: _velhos, ...resto } = t;
+    return anexos.length ? { ...resto, anexos } : resto;
+  });
 }
 
 // --- Execuções de teste de avatar (histórico com a transcrição completa) ---
