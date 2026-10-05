@@ -13,6 +13,9 @@
  * precisar mudar.
  */
 
+import type { AnexoTurno } from "./types";
+import { descreverAnexos } from "./anexosTurno";
+
 export interface ZentaTurno {
   avatarMessage: string;
   okStatus: boolean;
@@ -118,6 +121,8 @@ export interface ContextoRespostaFicticia {
   turno: number;
   /** Se este turno foi sorteado pra "resolver" o critério — decidido fora daqui. */
   resolverAgora: boolean;
+  /** Arquivos que a pessoa mandou neste turno (05/10/2026) — o avatar acusa o recebimento. */
+  anexos?: AnexoTurno[];
 }
 
 /**
@@ -127,6 +132,12 @@ export interface ContextoRespostaFicticia {
  * ainda que 100% inventada.
  */
 export function gerarRespostaAvatarFicticia(ctx: ContextoRespostaFicticia): string {
+  // Turno com arquivo: o avatar fictício acusa o recebimento antes da fala
+  // normal — mostra na demo que o arquivo "chegou", sem ler arquivo nenhum.
+  const anexos = ctx.anexos || [];
+  if (anexos.length) {
+    return `Recebi ${descreverAnexos(anexos)}, obrigado! ${gerarRespostaAvatarFicticia({ ...ctx, anexos: [] })}`;
+  }
   if (ctx.turno <= 1) {
     return escolher(ABERTURAS_AVATAR);
   }

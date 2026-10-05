@@ -28,6 +28,7 @@ import {
 } from "./zenta";
 import { SessaoConversa, comporAbertura, criterioCumpridoNaTranscricao, decidirProximoPasso } from "./qaSimulador";
 import { entradaDoTurno } from "./roteiroTurnos";
+import { anexosDoTurno } from "./anexosTurno";
 import { ajustarOcorrencias, ParOcorrencia } from "./embaralhar";
 import { updateLoopCounters } from "./qaHeuristicas";
 import { deleteSession, getSession, limparSessoesVencidas, setSession } from "./qaSessao";
@@ -212,8 +213,13 @@ async function mensagemDeAbertura(
   // entradaDoTurno devolve null no modo "livre" — e ai a abertura e escrita
   // pela IA sem instrucao nenhuma, so com o cenario.
   const entrada = entradaDoTurno(roteiro, 1);
-  if (entrada && entrada.modo === "exato") return entrada.texto.trim() || padrao;
-  return comporAbertura(session, entrada, padrao);
+  const anexos = anexosDoTurno(roteiro, 1);
+  if (entrada && entrada.modo === "exato") {
+    // Abertura só com arquivo (05/10/2026): texto vazio é de propósito.
+    if (!entrada.texto.trim() && anexos.length) return "";
+    return entrada.texto.trim() || padrao;
+  }
+  return comporAbertura(session, entrada, padrao, anexos);
 }
 
 /** Um turno inteiro: fala, resposta, decisao, e o que fazer com ela. */
@@ -230,6 +236,8 @@ export async function rodarTurno(session: SessaoConversa): Promise<RespostaTurno
   const pergunta = ajuste.texto;
 
   const iteration = (session.iteration || 0) + 1;
+  // Arquivos deste turno (05/10/2026) — o avatar fictício reage a eles.
+  const anexos = anexosDoTurno(session.roteiroTurnos, iteration);
 
   // MODO DEMO: a decisão de "resolver o critério agora" é tomada AQUI, antes
   // de gerar a fala do avatar fictício — assim o texto do avatar já nasce
@@ -250,6 +258,7 @@ export async function rodarTurno(session: SessaoConversa): Promise<RespostaTurno
     criterioSucesso: session.criterioSucesso,
     turno: iteration,
     resolverAgora,
+    anexos,
   });
   const okStatus = true;
   const conversationId: string | null = session.conversationId;
@@ -264,6 +273,7 @@ export async function rodarTurno(session: SessaoConversa): Promise<RespostaTurno
     {
       turno: iteration,
       enviado: pergunta,
+      ...(anexos.length ? { anexos } : {}),
       resposta_avatar: avatarMessage,
       responseStatus_ok: okStatus,
       http_status: statusCode,
@@ -309,7 +319,12 @@ function montarRespostaDeTurno(session: SessaoConversa): RespostaTurno {
     turno_atual: session.iteration,
     max_turnos: session.maxTurnos,
     ultimo_turno: ultimo
-      ? { turno: ultimo.turno, enviado: ultimo.enviado, resposta_avatar: ultimo.resposta_avatar }
+      ? {
+          turno: ultimo.turno,
+          enviado: ultimo.enviado,
+          resposta_avatar: ultimo.resposta_avatar,
+          ...(ultimo.anexos && ultimo.anexos.length ? { anexos: ultimo.anexos } : {}),
+        }
       : null,
     cenario: session.cenario,
     criterio_sucesso: session.criterioSucesso,

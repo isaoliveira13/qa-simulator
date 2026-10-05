@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AvatarTest, AvatarTestRun, AvatarTurn, Tag } from "@/lib/types";
+import { ListaAnexos } from "@/components/anexos-turno";
 import { IconCheck, IconPencil, IconTrash, IconX } from "../../icons";
 import { PessoaLinha, pessoaDoLoteParaLinha } from "@/lib/loteText";
 import { pessoaLinhaParaDados, preencherTemplate } from "@/lib/personaTemplate";
@@ -532,7 +533,7 @@ export default function FichaSimulacaoPage() {
                   {liveTurns.map((t) => (
                     <div key={t.turno} className="status-msg">
                       <strong>Turno {t.turno}</strong>
-                      <div>➜ {t.enviado}</div>
+                      <div>➜ {t.enviado} <ListaAnexos anexos={t.anexos} /></div>
                       <div>⇐ {t.resposta_avatar}</div>
                     </div>
                   ))}
@@ -629,7 +630,7 @@ export default function FichaSimulacaoPage() {
                         {(r.transcricao || []).map((t) => (
                           <div key={t.turno} className="status-msg">
                             <strong>Turno {t.turno}</strong>
-                            <div>➜ {t.enviado}</div>
+                            <div>➜ {t.enviado} <ListaAnexos anexos={t.anexos} /></div>
                             <div>⇐ {t.resposta_avatar}</div>
                           </div>
                         ))}
@@ -731,9 +732,16 @@ export default function FichaSimulacaoPage() {
                           {t.modo === "livre"
                             ? "Turno livre: a pessoa simulada responde a partir do cenário."
                             : t.modo === "exato"
-                              ? `“${t.texto}”`
+                              ? t.texto.trim()
+                                ? `“${t.texto}”`
+                                : "Só o arquivo, sem texto."
                               : t.texto}
                         </p>
+                        {(t.anexos || []).length > 0 && (
+                          <div className="roteiro-ficha-anexos">
+                            <ListaAnexos anexos={t.anexos} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

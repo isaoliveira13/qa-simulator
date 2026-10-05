@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AvatarTest, AvatarTestRun, AvatarTurn, Tag } from "@/lib/types";
+import { ListaAnexos } from "@/components/anexos-turno";
 import { IconPencil, IconDots, IconX, IconGripVertical } from "../icons";
 import { FilterPopover } from "@/components/filter-popover";
 import { emptyFilter, matchesFilter, MultiFilter } from "@/lib/filters";
@@ -1321,7 +1322,7 @@ export default function TestesAvatarPage() {
                         <div className="lote-card-transcript">
                           {pessoa.turns.map((t) => (
                             <div key={t.turno}>
-                              <div className="lote-turn-enviado">➜ {t.enviado}</div>
+                              <div className="lote-turn-enviado">➜ {t.enviado} <ListaAnexos anexos={t.anexos} /></div>
                               <div className="lote-turn-resposta">⇐ {t.resposta_avatar}</div>
                             </div>
                           ))}
@@ -1402,7 +1403,7 @@ export default function TestesAvatarPage() {
                         <div className="lote-card-transcript">
                           {p.turns.map((t) => (
                             <div key={t.turno}>
-                              <div className="lote-turn-enviado">➜ {t.enviado}</div>
+                              <div className="lote-turn-enviado">➜ {t.enviado} <ListaAnexos anexos={t.anexos} /></div>
                               <div className="lote-turn-resposta">⇐ {t.resposta_avatar}</div>
                             </div>
                           ))}

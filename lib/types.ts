@@ -165,6 +165,28 @@ export interface TurnoRoteiro {
      * leitura humana: o motor executa o roteiro confirmado ou não.
      */
   confirmado?: boolean;
+    /**
+     * Imagens/PDFs que vão junto com a mensagem deste turno (05/10/2026).
+     * Vale nos três modos: em "exato" o texto pode ficar vazio e o arquivo
+     * vai sozinho; em "instrucao" e "livre" a IA escreve a fala e o arquivo
+     * vai junto. MODO DEMO: só nome/tipo/tamanho são registrados (o arquivo
+     * não sai do navegador) — ver lib/anexosTurno.ts.
+     */
+  anexos?: AnexoTurno[];
+}
+
+/** Um arquivo anexado a um turno do roteiro. */
+export interface AnexoTurno {
+    /** id da linha em `avatar_test_anexos`. */
+  id: string;
+    /** Nome original do arquivo, só pra mostrar. */
+  nome: string;
+    /** MODO DEMO: sempre vazio — o arquivo não sai do navegador (no projeto real, é o link do arquivo). */
+  url: string;
+    /** Content-type (image/png, application/pdf...). */
+  tipo: string;
+    /** Bytes. */
+  tamanho: number;
 }
 
 /** Um turno da conversa (pergunta enviada + resposta do avatar), igual ao que o coisasdaisa devolve. */
@@ -172,6 +194,8 @@ export interface AvatarTurn {
   turno: number;
   enviado: string;
   resposta_avatar: string;
+    /** Arquivos enviados junto com `enviado` neste turno, se houve. */
+  anexos?: AnexoTurno[];
 }
 
 /**

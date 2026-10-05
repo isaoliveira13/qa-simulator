@@ -14,7 +14,8 @@
 
 import { checarLimitesDeLoop, hasSuccessEvidence } from "./qaHeuristicas";
 import { entradaDoTurno, roteiroTemTurnoDepoisDe } from "./roteiroTurnos";
-import { QuandoEmbaralhar, TurnoRoteiro } from "./types";
+import { AnexoTurno, QuandoEmbaralhar, TurnoRoteiro } from "./types";
+import { anexosDoTurno } from "./anexosTurno";
 import { ParOcorrencia } from "./embaralhar";
 
 /** Estado de uma conversa em andamento — o que atravessa os turnos. */
@@ -82,6 +83,15 @@ export interface TurnoLog {
   http_status: number | null;
   tentativas: number;
   erro_http: string | null;
+  /** Arquivos que foram junto com `enviado` neste turno (05/10/2026). */
+  anexos?: AnexoTurno[];
+}
+
+/** Fecha a frase e avisa que vai arquivo junto (turno com anexo, 05/10/2026). */
+function avisarAnexo(texto: string): string {
+  const t = String(texto || "").trim();
+  if (!t) return "Segue em anexo.";
+  return /[.!?…]$/.test(t) ? `${t} Segue em anexo.` : `${t}. Segue em anexo.`;
 }
 
 function escolher<T>(arr: T[]): T {
@@ -102,18 +112,20 @@ function trechoCurto(texto: string, max = 90): string {
 export async function comporAbertura(
   session: SessaoConversa,
   entrada: TurnoRoteiro | null,
-  padrao: string
+  padrao: string,
+  anexos: AnexoTurno[] = []
 ): Promise<string> {
+  const comAnexo = (texto: string) => (anexos.length ? avisarAnexo(texto) : texto);
   const nome = session.dadosFixos && (session.dadosFixos as any).nome ? String((session.dadosFixos as any).nome) : "";
   const saudacaoNome = nome ? `Oi, meu nome é ${nome}. ` : "Oi! ";
 
   if (entrada && entrada.modo === "instrucao" && entrada.texto.trim()) {
-    return `${saudacaoNome}${entrada.texto.trim()}`;
+    return comAnexo(`${saudacaoNome}${entrada.texto.trim()}`);
   }
 
   const resumo = trechoCurto(session.cenario, 160);
-  if (!resumo) return padrao;
-  return `${saudacaoNome}Preciso de ajuda com o seguinte: ${resumo}`;
+  if (!resumo) return comAnexo(padrao);
+  return comAnexo(`${saudacaoNome}Preciso de ajuda com o seguinte: ${resumo}`);
 }
 
 const RESPOSTAS_TAILORED = [
@@ -176,13 +188,23 @@ function gerarFalaPessoaFicticia(session: SessaoConversa, entrada: TurnoRoteiro 
 export async function decidirProximoPasso(session: SessaoConversa): Promise<SessaoConversa> {
   const entrada = entradaDoTurno(session.roteiroTurnos, (session.iteration || 0) + 1);
   const textoExato = entrada && entrada.modo === "exato" ? entrada.texto.trim() : "";
+  // Arquivos do turno que se decide agora (05/10/2026): num texto exato
+  // podem ser a mensagem inteira (texto vazio); nos outros modos a fala
+  // gerada avisa que vai um arquivo junto.
+  const anexos = anexosDoTurno(session.roteiroTurnos, (session.iteration || 0) + 1);
+  const turnoExato = !!entrada && entrada.modo === "exato" && (!!textoExato || anexos.length > 0);
 
   let sucessoSegurado = session.sucessoSeguradoNoTurno ?? null;
   const temTurnoAFrente =
     session.rodarRoteiroCompleto === true &&
     roteiroTemTurnoDepoisDe(session.roteiroTurnos, session.iteration || 0);
 
-  const nextQuestion = textoExato || gerarFalaPessoaFicticia(session, entrada);
+  const nextQuestion = turnoExato
+    ? textoExato
+    : anexos.length
+      ? avisarAnexo(gerarFalaPessoaFicticia(session, entrada))
+      : gerarFalaPessoaFicticia(session, entrada);
+  const temOQueEnviar = !!nextQuestion.trim() || anexos.length > 0;
 
   // Mesmo contrapeso do motor original: "sucesso" só vale se houver eco real
   // do critério na fala do avatar (aqui, o eco que a própria demo colocou lá
@@ -196,13 +218,13 @@ export async function decidirProximoPasso(session: SessaoConversa): Promise<Sess
 
   // Segura o sucesso em vez de encerrar: ainda ha turno escrito do roteiro a
   // mandar (switch "rodar o roteiro inteiro" — mesma regra do motor original).
-  if (acao === "sucesso" && temTurnoAFrente && nextQuestion.trim()) {
+  if (acao === "sucesso" && temTurnoAFrente && temOQueEnviar) {
     if (sucessoSegurado == null) sucessoSegurado = session.iteration;
     acao = "continuar";
     motivo = null;
   }
 
-  const lastProgressIter = nextQuestion ? session.iteration : session.lastProgressIter || 0;
+  const lastProgressIter = temOQueEnviar ? session.iteration : session.lastProgressIter || 0;
 
   if (acao === "continuar") {
     const { forcarErro, motivo: motivoLimite } = checarLimitesDeLoop({ ...session, lastProgressIter });

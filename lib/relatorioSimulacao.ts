@@ -1,3 +1,4 @@
+import { rotuloAnexosTexto } from "./anexosTurno";
 import type { AvatarTest, AvatarTestRun, AvatarTurn } from "./types";
 import { resumirEmbaralhamento } from "./embaralhar";
 
@@ -478,7 +479,10 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
       } else {
         turnos.forEach((t) => {
           y = desenharSeparadorTurno(doc, y, t.turno);
-          y = desenharBalao(doc, y, t.enviado, "direita", BALAO_PESSOA);
+          // Anexo vai como texto no balão (jsPDF não desenha emoji nem prévia).
+          const anexoTexto = rotuloAnexosTexto(t.anexos);
+          const falaPessoa = [t.enviado, anexoTexto].filter((x) => x && String(x).trim()).join("\n");
+          y = desenharBalao(doc, y, falaPessoa, "direita", BALAO_PESSOA);
           y = desenharBalao(doc, y, t.resposta_avatar, "esquerda", BALAO_AVATAR);
           y += 2;
         });
