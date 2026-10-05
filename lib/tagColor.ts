@@ -14,6 +14,19 @@ export function tagPillStyle(hex?: string): CSSProperties {
     return { background: "var(--tag-bg)", color: "var(--tag-text)" };
   }
   const { h, s } = hexToHsl(hex);
+  // Cor sem matiz (preto, cinza, branco): o hue sai 0 — que é vermelho — e o
+  // piso de saturação abaixo pintava a pílula de vermelho (bug de 05/10/2026,
+  // etiqueta preta aparecendo vermelha). Essas ficam em tons de cinza.
+  if (s < 10) {
+    return {
+      ["--tag-pill-bg-light"]: hslToHex(0, 0, 91),
+      ["--tag-pill-fg-light"]: hslToHex(0, 0, 15),
+      ["--tag-pill-bg-dark"]: hslToHex(0, 0, 18),
+      ["--tag-pill-fg-dark"]: hslToHex(0, 0, 85),
+      background: "var(--tag-pill-bg)",
+      color: "var(--tag-pill-fg)",
+    } as CSSProperties;
+  }
   const sat = Math.min(Math.max(s, 40), 75);
   return {
     // Claro: fundo bem claro + texto escuro, como sempre foi.
@@ -50,7 +63,9 @@ export function sortTagsByColor(tags: string[], colorFor: (tag: string) => strin
 
 function hueOf(hex?: string): number {
   if (!hex || !/^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hex)) return 361;
-  return hexToHsl(hex).h;
+  const { h, s } = hexToHsl(hex);
+  // Sem matiz (preto/cinza/branco) vai depois das coloridas, não junto do vermelho.
+  return s < 10 ? 360 : h;
 }
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
