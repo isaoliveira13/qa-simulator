@@ -1547,10 +1547,21 @@ input[type="file"]::file-selector-button:hover {
 
 /* ---------- Menu do card ---------- */
 
+/* Reticências no canto superior direito do card, numa coluna SÓ DELAS
+   (13/10/2026). Antes ficavam em right: 12px — bem em cima do último botão da
+   linha de ação, e pareciam fazer parte dele ("Rodar no terminal" na Suítes,
+   "Editar" na Biblioteca). Agora o card com menu reserva 52px na direita: os
+   botões terminam antes dessa coluna e as reticências ficam encostadas no
+   canto, com um respiro entre os dois. Vale pra todo card que tiver o menu
+   como filho direto (Biblioteca, Suítes). */
 .card-menu-wrap {
   position: absolute;
-  top: 6px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
+}
+
+.card:has(> .card-menu-wrap) {
+  padding-right: 52px;
 }
 
 .card-menu-btn {
@@ -4037,4 +4048,40 @@ input[type="file"]::file-selector-button:hover {
 /* Item do menu de reticências que é link (ex.: "Abrir" no card de suíte). */
 a.card-menu-item {
   text-decoration: none;
+}
+
+/* ---------- Suíte fixada no topo (13/10/2026) ----------
+   Igual fixar conversa no WhatsApp: alfinete ao lado do nome (clicável pra
+   desafixar) e uma borda esquerda discreta no card. */
+.suite-titulo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.suite-pin {
+  background: none;
+  border: none;
+  padding: 3px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.suite-pin:hover {
+  background: var(--accent-soft);
+}
+
+.card.card-fixada {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* O hover do .card troca o box-shadow; sem isto a faixa da fixada sumia. */
+.card.card-fixada:hover {
+  box-shadow: inset 3px 0 0 var(--accent), var(--shadow-sm);
 }

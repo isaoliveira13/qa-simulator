@@ -66,6 +66,19 @@ export default function SuitePage() {
 
   const [modo, setModo] = useState<"ver" | "editar">(isNova ? "editar" : "ver");
 
+  // O botão "Editar" da lista de suítes chega com ?modo=editar e abre direto na
+  // montagem (13/10/2026). Lido do window (e não com useSearchParams, que
+  // exigiria Suspense no build) e tirado da URL logo em seguida, pra um F5
+  // depois de salvar não reabrir a edição.
+  useEffect(() => {
+    if (isNova) return;
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get("modo") === "editar") {
+      setModo("editar");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [isNova]);
+
   // --- identidade da suíte ---
   const [nome, setNome] = useState("");
   const [tags, setTags] = useState<string[]>([]);

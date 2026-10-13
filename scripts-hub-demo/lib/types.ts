@@ -29,6 +29,12 @@ export interface Suite {
   tags: string[];
     /** Data de criacao (ISO). */
   createdAt: string;
+    /**
+     * Quando a suite foi fixada no topo da lista (ISO), ou null se nao esta
+     * fixada (13/10/2026 — igual fixar conversa no WhatsApp). A fixada mais
+     * recente fica em cima.
+     */
+  fixadaEm: string | null;
 }
 
 export interface Execution {

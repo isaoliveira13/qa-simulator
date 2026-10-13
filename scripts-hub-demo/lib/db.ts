@@ -215,6 +215,8 @@ function seed(): { data: Store; contents: Record<string, string> } {
       scriptIds: ["nimbus-hml-login-basico-demo1", "nimbus-hml-envio-texto-demo2"],
       tags: ["smoke"],
       createdAt: isoHaDias(9),
+      // Ja vem fixada no topo, pra quem visita a demo ver o alfinete.
+      fixadaEm: isoHaDias(1),
     },
     {
       id: "suite-demo-fluxo-atendimento",
@@ -226,6 +228,7 @@ function seed(): { data: Store; contents: Record<string, string> } {
       ],
       tags: ["suporte"],
       createdAt: isoHaDias(3),
+      fixadaEm: null,
     },
   ];
 
@@ -538,8 +541,11 @@ export async function deleteTag(name: string): Promise<Tag[]> {
 // --- Suítes (sequências de teste) ---
 
 export async function listSuites(): Promise<Suite[]> {
+  // Fixadas primeiro (a mais recente em cima), depois a ordem de sempre.
   return clone(store().suites).sort(
-    (a: Suite, b: Suite) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a: Suite, b: Suite) =>
+      (b.fixadaEm || "").localeCompare(a.fixadaEm || "") ||
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
@@ -559,6 +565,7 @@ export async function createSuite(name: string, scriptIds: string[], tags: strin
     scriptIds: Array.from(new Set(scriptIds)),
     tags,
     createdAt: isoAgora(),
+    fixadaEm: null,
   };
   s.suites.push(created);
   return clone(created);
@@ -566,7 +573,7 @@ export async function createSuite(name: string, scriptIds: string[], tags: strin
 
 export async function updateSuite(
   id: string,
-  changes: { name?: string; scriptIds?: string[]; tags?: string[] }
+  changes: { name?: string; scriptIds?: string[]; tags?: string[]; fixada?: boolean }
 ): Promise<Suite> {
   const s = store();
   const existing = s.suites.find((su) => su.id === id);
@@ -575,6 +582,9 @@ export async function updateSuite(
   if (changes.name !== undefined) existing.name = changes.name;
   if (changes.tags !== undefined) existing.tags = changes.tags;
   if (changes.scriptIds !== undefined) existing.scriptIds = Array.from(new Set(changes.scriptIds));
+  // Fixar no topo (13/10/2026): fixar de novo renova a data e a suite sobe pro
+  // topo das fixadas, como no WhatsApp.
+  if (changes.fixada !== undefined) existing.fixadaEm = changes.fixada ? isoAgora() : null;
 
   return clone(existing);
 }

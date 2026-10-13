@@ -25,12 +25,15 @@ export async function PATCH(
       name,
       scriptIds,
       tags,
-    }: { name?: string; scriptIds?: string[]; tags?: string[] } = await req.json();
+      fixada,
+    }: { name?: string; scriptIds?: string[]; tags?: string[]; fixada?: boolean } = await req.json();
     const suite = await updateSuite(id, {
       ...(name !== undefined ? { name: name.trim() } : {}),
       // scriptIds chega JA na ordem da sequencia (o back so repassa).
       ...(scriptIds !== undefined ? { scriptIds } : {}),
       ...(tags !== undefined ? { tags } : {}),
+      // Fixar/desafixar no topo da lista (13/10/2026).
+      ...(typeof fixada === "boolean" ? { fixada } : {}),
     });
     return NextResponse.json({ suite });
   } catch (err: any) {

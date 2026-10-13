@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ScriptEntry, Suite, Tag } from "@/lib/types";
-import { IconDots } from "../icons";
+import { IconDots, IconPin } from "../icons";
 import { FilterPopover } from "@/components/filter-popover";
 import { emptyFilter, matchesFilter, MultiFilter } from "@/lib/filters";
 import { TagQuickAdd } from "@/components/tag-quick-add";
@@ -16,9 +16,14 @@ import { SuiteCommandModal } from "@/components/suite-command-modal";
  *
  * Esta tela é só a vitrine: nome da suíte, quantidade e etiquetas — os nomes
  * dos testes saíram do card em 22/09/2026 (quem quer vê-los abre a suíte, que
- * é uma Biblioteca reduzida). Na linha de ação fica só "Rodar no terminal";
- * Abrir e Apagar moram no menu de reticências. Montar/ordenar é em
- * /suites/[id], no modo editar.
+ * é uma Biblioteca reduzida). Na linha de ação: Abrir | Editar | Rodar no
+ * terminal (13/10/2026 — Abrir e Editar saíram do menu e viraram botões, no
+ * mesmo estilo do "Editar" da Biblioteca). No menu de reticências ficam
+ * Fixar no topo e Apagar. Montar/ordenar é em /suites/[id], no modo editar.
+ *
+ * Fixar no topo (13/10/2026): igual fixar conversa no WhatsApp. As fixadas
+ * vêm sempre antes das outras (a fixada mais recente em cima). Filtro e busca
+ * continuam valendo pra elas.
  */
 
 export default function SuitesPage() {
@@ -37,8 +42,9 @@ export default function SuitesPage() {
   const [confirmDelete, setConfirmDelete] = useState<Suite | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Menu de reticências do card (Abrir / Apagar), mesmo padrão da Biblioteca.
+  // Menu de reticências do card (Fixar no topo / Apagar), mesmo padrão da Biblioteca.
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [fixandoId, setFixandoId] = useState<string | null>(null);
 
   // Modal do comando de terminal (as opções moram dentro do componente).
   const [cmdSuite, setCmdSuite] = useState<Suite | null>(null);
@@ -115,6 +121,41 @@ export default function SuitesPage() {
       }),
     [suites, tagFilter, busca, scriptsById]
   );
+
+  // Fixadas sempre no topo, a mais recente em cima (13/10/2026). O resto segue
+  // a ordem de sempre.
+  const lista = [
+    ...filtradas
+      .filter((s) => s.fixadaEm)
+      .sort((a, b) => (b.fixadaEm || "").localeCompare(a.fixadaEm || "")),
+    ...filtradas.filter((s) => !s.fixadaEm),
+  ];
+
+  /** Fixa/desafixa a suíte no topo da lista. Otimista, como a etiqueta rápida. */
+  async function alternarFixada(suite: Suite) {
+    const fixar = !suite.fixadaEm;
+    const antes = suites;
+    const agora = new Date().toISOString();
+    setSuites((prev) => prev.map((s) => (s.id === suite.id ? { ...s, fixadaEm: fixar ? agora : null } : s)));
+    setFixandoId(suite.id);
+    try {
+      const res = await fetch(`/api/suites/${suite.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fixada: fixar }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (data.suite) {
+        setSuites((prev) => prev.map((s) => (s.id === suite.id ? { ...s, fixadaEm: data.suite.fixadaEm ?? null } : s)));
+      }
+    } catch (e: any) {
+      setSuites(antes);
+      setError(e.message || String(e));
+    } finally {
+      setFixandoId(null);
+    }
+  }
 
   /** Marcar/desmarcar etiqueta direto no card, igual na Biblioteca (otimista). */
   async function alternarTagSuite(suite: Suite, tag: string) {
@@ -202,14 +243,15 @@ export default function SuitesPage() {
         <p className="empty">Nenhuma suíte com esse filtro.</p>
       )}
 
-      {filtradas.map((suite) => {
+      {lista.map((suite) => {
         const naOrdem = scriptsNaOrdem(suite);
         const missing = suite.scriptIds.length - naOrdem.length;
+        const fixada = !!suite.fixadaEm;
 
         return (
-          <div className="card" key={suite.id}>
-            {/* Abrir e Apagar moraram pro menu de reticências (22/09/2026):
-                na linha de ação fica só o que ela usa toda hora. */}
+          <div className={`card${fixada ? " card-fixada" : ""}`} key={suite.id}>
+            {/* Menu de reticências: Fixar no topo e Apagar. Abrir e Editar
+                voltaram pra linha de ação como botões (13/10/2026). */}
             <div className="card-menu-wrap">
               <button
                 className="card-menu-btn"
@@ -221,13 +263,16 @@ export default function SuitesPage() {
               </button>
               {menuOpenId === suite.id && (
                 <div className="card-menu">
-                  <Link
+                  <button
                     className="card-menu-item"
-                    href={`/suites/${suite.id}`}
-                    onClick={() => setMenuOpenId(null)}
+                    disabled={fixandoId === suite.id}
+                    onClick={() => {
+                      setMenuOpenId(null);
+                      alternarFixada(suite);
+                    }}
                   >
-                    Abrir
-                  </Link>
+                    {fixada ? "Desafixar" : "Fixar no topo"}
+                  </button>
                   <button
                     className="card-menu-item card-menu-item-danger"
                     disabled={deletingId === suite.id}
@@ -244,9 +289,23 @@ export default function SuitesPage() {
 
             <div className="card-main">
               <div className="card-info">
-                <Link className="card-title-link" href={`/suites/${suite.id}`}>
-                  <h3>{suite.name}</h3>
-                </Link>
+                <div className="suite-titulo-row">
+                  <Link className="card-title-link" href={`/suites/${suite.id}`}>
+                    <h3>{suite.name}</h3>
+                  </Link>
+                  {fixada && (
+                    <button
+                      type="button"
+                      className="suite-pin"
+                      onClick={() => alternarFixada(suite)}
+                      disabled={fixandoId === suite.id}
+                      title="Fixada no topo — clique pra desafixar"
+                      aria-label={`Desafixar ${suite.name}`}
+                    >
+                      <IconPin size={14} />
+                    </button>
+                  )}
+                </div>
                 <div className="meta">
                   {suite.scriptIds.length} teste(s) na sequência
                   {missing > 0 ? ` · ${missing} não encontrado(s)` : ""}
@@ -269,6 +328,15 @@ export default function SuitesPage() {
               </div>
             </div>
             <div className="actions">
+              {/* Abrir | Editar | Rodar no terminal (13/10/2026). Abrir e Editar
+                  no mesmo estilo do "Editar" da Biblioteca (btn-ghost). Editar
+                  cai direto na montagem em duas colunas (?modo=editar). */}
+              <Link className="btn btn-ghost" href={`/suites/${suite.id}`}>
+                Abrir
+              </Link>
+              <Link className="btn btn-ghost" href={`/suites/${suite.id}?modo=editar`}>
+                Editar
+              </Link>
               <button
                 type="button"
                 className="btn-primary"
