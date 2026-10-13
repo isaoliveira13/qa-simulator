@@ -102,6 +102,12 @@ export interface AvatarTest {
   arquivada?: boolean;
     /** Posicao manual do card no Avatar IA — maior valor aparece primeiro. */
   ordem: number;
+    /**
+     * Prioridade por ambiente (13/10/2026): nivel 1, 2 ou 3 da simulacao. Vale
+     * em todos os ambientes (a simulacao e uma linha so); o peso do ambiente
+     * vem do destino do switch. Ver lib/prioridade.ts.
+     */
+  prioridade?: 1 | 2 | 3;
 }
 
 /** Uma troca escolhida a mão na etapa 4. `dir: "par"` = os dois campos trocam entre si; `"unico"` = só `a` recebe o valor de `b`. */

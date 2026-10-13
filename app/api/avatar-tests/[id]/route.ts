@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizarConfigEmbaralhar } from "@/lib/embaralhar";
 import { deleteAvatarTest, garantirAvatar, getAvatarTest, updateAvatarTest } from "@/lib/db";
+import { ehNivel, Nivel } from "@/lib/prioridade";
 
 export async function GET(
   req: NextRequest,
@@ -71,6 +72,10 @@ export async function PATCH(
       ...(body.arquivada !== undefined ? { arquivada: !!body.arquivada } : {}),
       // Posicao manual do arrastar-soltar do Avatar IA (21/09/2026).
       ...(body.ordem !== undefined ? { ordem: Number(body.ordem) } : {}),
+      // Prioridade por ambiente (13/10/2026): 1, 2, 3 ou null pra tirar.
+      ...(body.prioridade !== undefined
+        ? { prioridade: ehNivel(Number(body.prioridade)) ? (Number(body.prioridade) as Nivel) : null }
+        : {}),
     });
     // Trocar o avatar de uma simulacao (assistente ou switch do card) tambem
     // cadastra um avatar novo, pelo mesmo motivo do POST.

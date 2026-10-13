@@ -172,6 +172,7 @@ function seed(): Store {
         rodarRoteiroCompleto: false,
         arquivada: false,
         ordem: 2,
+        prioridade: 1,
       },
       {
         id: "simulacao-demo-fatura-lote",
@@ -198,6 +199,7 @@ function seed(): Store {
         rodarRoteiroCompleto: false,
         arquivada: false,
         ordem: 1,
+        prioridade: 2,
       },
     ],
     avatarTestRuns: [
@@ -407,6 +409,8 @@ export async function updateAvatarTest(
     embaralharConfig: EmbaralharConfig | null;
     arquivada: boolean;
     ordem: number;
+    /** `null` tira a prioridade (13/10/2026). */
+    prioridade: 1 | 2 | 3 | null;
   }>
 ): Promise<AvatarTest> {
   const s = store();
@@ -470,6 +474,10 @@ export async function updateAvatarTest(
   }
   if (changes.arquivada !== undefined) existing.arquivada = changes.arquivada;
   if (changes.ordem !== undefined) existing.ordem = changes.ordem;
+  if (changes.prioridade !== undefined) {
+    if (changes.prioridade) existing.prioridade = changes.prioridade;
+    else delete existing.prioridade;
+  }
 
   return clone(existing);
 }

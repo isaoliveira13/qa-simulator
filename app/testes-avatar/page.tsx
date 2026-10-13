@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AvatarTest, AvatarTestRun, AvatarTurn, Tag } from "@/lib/types";
 import { ListaAnexos } from "@/components/anexos-turno";
 import { IconPencil, IconDots, IconX, IconGripVertical } from "../icons";
 import { FilterPopover } from "@/components/filter-popover";
+import { SelectPopover } from "@/components/select-popover";
 import { emptyFilter, matchesFilter, MultiFilter } from "@/lib/filters";
 import { pessoaDoLoteParaLinha, PessoaLinha } from "@/lib/loteText";
 import { tagPillStyle, sortTagsByColor } from "@/lib/tagColor";
 import { TagQuickAdd } from "@/components/tag-quick-add";
 import { usePersistedState } from "@/lib/usePersistedState";
 import { DestinoSwitch, DimensaoDestino } from "@/components/destino-switch";
+// Prioridade por ambiente (13/10/2026) — ver lib/prioridade.ts.
+import { PrioridadeSeletor } from "@/components/prioridade-seletor";
+import { chaveDeOrdem, Nivel, OPCOES_FILTRO, rotuloDoFiltro, rotuloDoGrupo } from "@/lib/prioridade";
 import { useAvatares } from "@/lib/useAvatares";
 import { gerarRelatorioSimulacaoPdf } from "@/lib/relatorioSimulacao";
 import {
@@ -223,6 +227,13 @@ export default function TestesAvatarPage() {
   const [tagFilter, setTagFilter] = usePersistedState<MultiFilter>("testesAvatar:tagFilter", emptyFilter("AND"));
   const [search, setSearch] = usePersistedState("testesAvatar:search", "");
 
+  // Prioridade por ambiente (13/10/2026): o nivel e da simulacao (uma linha
+  // so pra todos os ambientes); o peso vem do destino marcado no switch.
+  const [prioFilter, setPrioFilter] = usePersistedState<MultiFilter>("testesAvatar:prioridadeFilter", emptyFilter("OR"));
+  // "" = ordem manual (arrastar); "prioridade" = criticidade, ambiente primeiro.
+  const [ordenar, setOrdenar] = usePersistedState<string>("testesAvatar:ordenar", "");
+  const [salvandoPrioId, setSalvandoPrioId] = useState<string | null>(null);
+
   // --- Catálogo de etiquetas (mesmo catálogo com/cor usado na Biblioteca) ---
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
 
@@ -297,8 +308,11 @@ export default function TestesAvatarPage() {
   const allTags = useMemo(() => Array.from(new Set(tests.flatMap((t) => t.tags))).sort(), [tests]);
   const arquivadasCount = tests.filter((t) => t.arquivada).length;
 
+  const nivelDe = (t: AvatarTest): Nivel | null => t.prioridade ?? null;
+
   const filtered = tests.filter((t) => {
     if (!!t.arquivada !== verArquivadas) return false;
+    if (!matchesFilter([rotuloDoFiltro(nivelDe(t))], prioFilter)) return false;
     if (!matchesFilter([t.avatar], avatarFilter)) return false;
     if (!matchesFilter([t.ambiente], ambienteFilter)) return false;
     if (!matchesFilter([t.tipo || "unico"], tipoFilter)) return false;
@@ -310,6 +324,49 @@ export default function TestesAvatarPage() {
     }
     return true;
   });
+
+  // Ordenado por prioridade: criticidade (ambiente primeiro) e, dentro do
+  // mesmo degrau, a ordem manual. O arrastar fica desligado nesse modo.
+  const porPrioridade = ordenar === "prioridade";
+  const lista = porPrioridade
+    ? [...filtered].sort(
+        (a, b) => chaveDeOrdem(nivelDe(a), a.ambiente) - chaveDeOrdem(nivelDe(b), b.ambiente) || b.ordem - a.ordem
+      )
+    : filtered;
+  const qtdPorGrupo = new Map<number, number>();
+  if (porPrioridade) {
+    lista.forEach((t) => {
+      const k = chaveDeOrdem(nivelDe(t), t.ambiente);
+      qtdPorGrupo.set(k, (qtdPorGrupo.get(k) ?? 0) + 1);
+    });
+  }
+
+  // Troca o nivel da simulacao. Otimista, como a etiqueta rapida.
+  async function mudarPrioridade(test: AvatarTest, nivel: Nivel | null) {
+    const antes = tests;
+    setTests((prev) =>
+      prev.map((t) => {
+        if (t.id !== test.id) return t;
+        const { prioridade: _sai, ...resto } = t;
+        return nivel ? { ...resto, prioridade: nivel } : resto;
+      })
+    );
+    setSalvandoPrioId(test.id);
+    try {
+      const res = await fetch(`/api/avatar-tests/${test.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prioridade: nivel }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+    } catch (e: any) {
+      setTests(antes);
+      setError(e.message || String(e));
+    } finally {
+      setSalvandoPrioId(null);
+    }
+  }
 
   // Arquiva/desarquiva pelo menu do card. Otimista, mesmo padrao do switch de
   // destino e da etiqueta rapida: a simulacao some da lista na hora e volta
@@ -1005,6 +1062,21 @@ export default function TestesAvatarPage() {
           searchable={false}
         />
         <FilterPopover
+          label="Prioridade"
+          options={OPCOES_FILTRO.map((o) => ({ name: o }))}
+          filter={prioFilter}
+          onChange={setPrioFilter}
+          onClear={() => setPrioFilter(emptyFilter("OR"))}
+          searchable={false}
+        />
+        <SelectPopover
+          allLabel="Ordem manual"
+          value={ordenar}
+          options={["prioridade"]}
+          formatOption={() => "Ordenar por prioridade"}
+          onChange={setOrdenar}
+        />
+        <FilterPopover
           label="Etiqueta"
           options={allTags.map((t) => ({ name: t }))}
           filter={tagFilter}
@@ -1068,8 +1140,13 @@ export default function TestesAvatarPage() {
         </p>
       )}
 
-      {filtered.map((test) => {
+      {lista.map((test, idx) => {
         const isSelected = selectedIds.includes(test.id);
+        const nivel = nivelDe(test);
+        const grupo = porPrioridade ? chaveDeOrdem(nivel, test.ambiente) : null;
+        const abreGrupo =
+          grupo !== null &&
+          (idx === 0 || chaveDeOrdem(nivelDe(lista[idx - 1]), lista[idx - 1].ambiente) !== grupo);
         // Onde esta rodada vai acontecer: a configuracao da propria simulacao,
         // do jeito que o switch deixou. Vai junto na chamada so pra ficar
         // gravada no historico daquela execucao (ver chamarProxy).
@@ -1095,13 +1172,19 @@ export default function TestesAvatarPage() {
         // la ou trocado aqui.
         const avatarInativo = avatarDesativado(test.avatar, avataresCadastrados);
         return (
+          <Fragment key={test.id}>
+          {abreGrupo && (
+            <div className="prio-grupo">
+              <span>{rotuloDoGrupo(nivel, test.ambiente)}</span>
+              <span className="prio-grupo-qtd">({qtdPorGrupo.get(grupo!)})</span>
+            </div>
+          )}
           <div
             className={`card${isSelected ? " selected" : ""}${novoId === test.id ? " recem-criada" : ""}${dragId === test.id ? " dragging" : ""}${dragOverId === test.id && dragId && dragId !== test.id ? " drag-over" : ""}`}
-            key={test.id}
             id={`sim-${test.id}`}
             style={{ flexDirection: "column", alignItems: "stretch" }}
             onDragOver={(e) => {
-              if (!dragId || dragId === test.id) return;
+              if (porPrioridade || !dragId || dragId === test.id) return;
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
               if (dragOverId !== test.id) setDragOverId(test.id);
@@ -1119,8 +1202,10 @@ export default function TestesAvatarPage() {
             <div className="card-head-row">
               <span
                 className="drag-handle"
-                draggable
+                draggable={!porPrioridade}
+                style={porPrioridade ? { opacity: 0.3, cursor: "not-allowed" } : undefined}
                 onDragStart={(e) => {
+                  if (porPrioridade) return;
                   e.dataTransfer.effectAllowed = "move";
                   setDragId(test.id);
                 }}
@@ -1128,7 +1213,7 @@ export default function TestesAvatarPage() {
                   setDragId(null);
                   setDragOverId(null);
                 }}
-                title="Arrastar pra reordenar"
+                title={porPrioridade ? "Volte para Ordem manual pra arrastar" : "Arrastar pra reordenar"}
                 aria-label={`Arrastar ${test.name} pra reordenar`}
               >
                 <IconGripVertical size={16} />
@@ -1143,6 +1228,13 @@ export default function TestesAvatarPage() {
                     aria-label={`Selecionar ${test.name}`}
                   />
                 )}
+                <PrioridadeSeletor
+                  nivel={nivel}
+                  ambiente={test.ambiente}
+                  alcance="Vale em todos os ambientes desta simulação"
+                  onChange={(n) => mudarPrioridade(test, n)}
+                  disabled={salvandoPrioId === test.id}
+                />
                 <div className="card-info">
                   <h3 className="card-title-ellipsis">
                     <Link href={`/testes-avatar/${test.id}`} title={test.name}>
@@ -1462,6 +1554,7 @@ export default function TestesAvatarPage() {
               </div>
             )}
           </div>
+          </Fragment>
         );
       })}
 
