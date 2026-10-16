@@ -798,7 +798,7 @@ export default function ImportarEmLotePage() {
                         ambiente={item.situacao !== "novo" && item.existente ? item.existente.ambiente : item.ambiente}
                         alcance="Vale para este teste em todos os ambientes e avatares"
                         onChange={(n) => {
-                          // Equivalentes na mesma lista (HML_isa_x, PROD_isabella_x) andam juntos.
+                          // Equivalentes na mesma lista (HML_nimbus_x, PROD_aurora_x) andam juntos.
                           const familia = chavePrioDoItem(item);
                           setItens((prev) =>
                             prev.map((i) =>

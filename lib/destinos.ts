@@ -1,6 +1,6 @@
 /**
  * Mapa de destinos do Avatar IA: a traducao entre os rotulos que aparecem na
- * tela ("hml", "isa") e a configuracao tecnica que realmente aponta a conversa
+ * tela ("hml", "nimbus") e a configuracao tecnica que realmente aponta a conversa
  * pra algum lugar (baseUrl da API da Zenta, host slug, sub slug).
  *
  * Fonte unica lida pelo switch de destino do card
@@ -53,7 +53,7 @@ export interface SubavatarDestino {
 }
 
 export interface AvatarDestino {
-  /** Rotulo usado no cadastro da simulacao ("isa"). */
+  /** Rotulo usado no cadastro da simulacao ("nimbus"). */
   nome: string;
   /** Host slug na Zenta. */
   hostSlug: string;
@@ -78,8 +78,8 @@ export interface AvatarDestino {
  * e nada quebra, so nao aparece opcao nenhuma ate a resposta chegar.
  */
 export const AVATARES_PADRAO: AvatarDestino[] = [
-  { nome: "isa", hostSlug: "isa", subs: [] },
-  { nome: "isabella", hostSlug: "isabella", subs: [] },
+  { nome: "nimbus", hostSlug: "nimbus", subs: [] },
+  { nome: "aurora", hostSlug: "aurora", subs: [] },
   { nome: "clienteexemplo", hostSlug: "clienteexemplo", subs: [] },
 ];
 
@@ -133,7 +133,7 @@ export function ambientesConhecidos(usados: string[]): string[] {
 
 /** Uma entrada da lista de avatares do switch. */
 export interface AvatarTrilhaItem {
-  /** Rotulo mostrado na pilula ("isa"). */
+  /** Rotulo mostrado na pilula ("nimbus"). */
   label: string;
   /** Valor comparado com AvatarTest.avatar. */
   valor: string;
@@ -221,7 +221,7 @@ export function chaveFamilia(nome: string): string {
 }
 
 /**
- * Config tecnica de um valor da trilha de avatares: "isa" devolve o host do
+ * Config tecnica de um valor da trilha de avatares: "nimbus" devolve o host do
  * avatar; "isa/suporte" devolve o host do pai com o subSlug do filho.
  * Devolve null quando o rotulo nao esta no mapa (cadastro antigo, texto livre).
  */

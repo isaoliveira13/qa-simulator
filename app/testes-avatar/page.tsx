@@ -526,7 +526,7 @@ export default function TestesAvatarPage() {
   //
   // Cada dimensao mexe SO no que e dela: trocar de ambiente mexe na baseUrl,
   // trocar de avatar mexe em host slug e sub slug. Senao, um clique de hml
-  // pra stg apagaria um sub slug digitado a mao (o mapa diz que "isa" nao tem
+  // pra stg apagaria um sub slug digitado a mao (o mapa diz que "nimbus" nao tem
   // subavatar, mas quem manda no que foi digitado e ela).
   // Marca/desmarca uma etiqueta direto no card, pelo botao "+" no fim da linha
   // de etiquetas — sem abrir a tela de edicao (pedido da Isa em 04/09/2026).

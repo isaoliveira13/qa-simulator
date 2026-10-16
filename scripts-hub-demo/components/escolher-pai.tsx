@@ -7,8 +7,8 @@ import { useMemo, useState } from "react";
  *
  * Escolhe o script PAI de um ou varios scripts, em um de dois alcances:
  * - "linha"   — SO ESTE SCRIPT (aquele avatar + ambiente). Pedido da Isa: ex.
- *               "STG_isabella_gestor-texto" dentro de "STG_isabella_gestor-geral"
- *               sem mexer no gestor-texto de HML/PROD nem no da isa.
+ *               "STG_aurora_gestor-texto" dentro de "STG_aurora_gestor-geral"
+ *               sem mexer no gestor-texto de HML/PROD nem no da nimbus.
  * - "familia" — o mesmo teste em TODOS os ambientes e avatares.
  * A escolha "so este script" passa por cima da regra de todos.
  *
@@ -23,7 +23,7 @@ export type OpcaoPai = {
   familia: string;
   /** nome mostrado (no "so este script", o nome do script pai de verdade) */
   nome: string;
-  /** onde existe, ex.: "HML, PROD · isa" */
+  /** onde existe, ex.: "HML, PROD · nimbus" */
   onde: string;
 };
 

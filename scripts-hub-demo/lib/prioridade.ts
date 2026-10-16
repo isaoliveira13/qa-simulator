@@ -84,12 +84,12 @@ function semAcento(s: string): string {
 /**
  * Familia de um script: o nome sem o prefixo de ambiente e sem o avatar, em
  * minusculas e sem acento. Equivalentes compartilham o nivel:
- *   "HML_isa_campanha-template-imagem"       (avatar isa)      -> "campanha-template-imagem"
- *   "PROD_isa_campanha-template-imagem"      (avatar isa)      -> a mesma
- *   "STG_isabella_campanha-template-imagem"  (avatar isabella) -> a mesma
+ *   "HML_nimbus_campanha-template-imagem"       (avatar nimbus)      -> "campanha-template-imagem"
+ *   "PROD_nimbus_campanha-template-imagem"      (avatar nimbus)      -> a mesma
+ *   "STG_aurora_campanha-template-imagem"  (avatar aurora) -> a mesma
  * 13/10/2026: primeiro a familia ignorava so o ambiente; no mesmo dia a Isa
- * pediu pra ignorar o avatar tambem (mesmo teste em Isa e Isabella = mesmo
- * nivel). Chaves antigas ("script:isa_campanha...") foram convertidas por
+ * pediu pra ignorar o avatar tambem (mesmo teste em Nimbus e Aurora = mesmo
+ * nivel). Chaves antigas ("script:nimbus_campanha...") foram convertidas por
  * db/migracoes/2026-10-13-prioridade-sem-avatar.sql.
  */
 export function familiaDoScript(nome: string, avatar: string): string {

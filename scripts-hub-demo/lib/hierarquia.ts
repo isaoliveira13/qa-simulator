@@ -27,8 +27,8 @@
  *
  * 0. SO ESTE SCRIPT (13/10/2026, pedido da Isa) — chave "id:<id do script>"
  *    na mesma tabela. Vale so pra aquele avatar + ambiente e passa por cima
- *    das outras duas. Ex.: "STG_isabella_gestor-texto" dentro de
- *    "STG_isabella_gestor-geral" sem mexer no gestor-texto de HML/PROD/isa.
+ *    das outras duas. Ex.: "STG_aurora_gestor-texto" dentro de
+ *    "STG_aurora_gestor-geral" sem mexer no gestor-texto de HML/PROD/nimbus.
  *
  * Na tela o pai precisa estar no MESMO avatar e ambiente do filho. Se o pai
  * direto nao existe ali, sobe pro avo, e assim por diante; sem nenhum, o

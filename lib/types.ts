@@ -9,7 +9,7 @@ export interface AvatarTest {
     /** Identificador unico (slug) do teste. */
   id: string;
   name: string;
-    /** Ex.: "Isabella", "ISA". */
+    /** Ex.: "Aurora", "NIMBUS". */
   avatar: string;
     /** Ex.: "hml", "prod". */
   ambiente: string;

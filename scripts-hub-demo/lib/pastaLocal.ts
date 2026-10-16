@@ -150,7 +150,7 @@ export async function garantirPermissao(handle: HandleDePasta): Promise<boolean>
 }
 
 export interface ArquivoEncontrado {
-  /** Caminho relativo dentro da pasta escolhida (ex.: "hml/HML_isa_login.spec.js"). */
+  /** Caminho relativo dentro da pasta escolhida (ex.: "hml/HML_nimbus_login.spec.js"). */
   caminho: string;
   arquivo: File;
 }

@@ -4,7 +4,7 @@
  * Os arquivos de teste da Isa seguem um padrao de nome:
  *
  *   AMBIENTE_avatar_o-que-o-teste-faz.spec.js
- *   ex.: "HML_isa_campanha-template-imagem.spec.js"
+ *   ex.: "HML_nimbus_campanha-template-imagem.spec.js"
  *
  * A partir desse nome da pra preencher sozinho os quatro campos que ela
  * digitava na mao em cada card: nome do teste, ambiente, avatar e cenario
@@ -109,7 +109,7 @@ export function lerNomeDoArquivo(nomeArquivo: string): TesteLido {
 /**
  * Casa o valor lido do nome do arquivo com um valor que ja existe na
  * plataforma, ignorando maiusculas/minusculas e acentos. Evita criar "HML" ao
- * lado de "hml" no filtro de ambiente (e "isa" ao lado de "Isa" no de avatar).
+ * lado de "hml" no filtro de ambiente (e "nimbus" ao lado de "Nimbus" no de avatar).
  */
 export function normalizarParaExistentes(valor: string, existentes: string[]): string {
   if (!valor) return valor;
