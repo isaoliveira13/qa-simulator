@@ -1,4 +1,6 @@
 import { ehImagem } from "./anexosTurno";
+import { desenharResumoResultados } from "./resumoResultados";
+import { nomearRelatorio } from "./nomeRelatorio";
 import { chaveAnexo, prepararPreviasAnexos, PreviaImagem } from "./anexosRelatorio";
 import type { AnexoTurno, AvatarTest, AvatarTestRun, AvatarTurn } from "./types";
 import { resumirEmbaralhamento } from "./embaralhar";
@@ -94,15 +96,6 @@ function formatarDataHora(iso?: string): string {
   return d.toLocaleString("pt-BR");
 }
 
-function slug(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
 
 /** Lista sem repetir, ignorando vazios — pra "rodou em hml, prod". */
 function unicos(valores: (string | undefined | null)[]): string[] {
@@ -631,7 +624,7 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
   const resumo =
     `${runs.length} conversa${runs.length === 1 ? "" : "s"} · ` +
     `${sucesso} sucesso · ${falha} falha` +
-    (outros > 0 ? ` · ${outros} sem veredito` : "") +
+    (outros > 0 ? ` · ${outros} não validada${outros === 1 ? "" : "s"}` : "") +
     ` · ${grupos.length} simulação${grupos.length === 1 ? "" : "ões"}`;
   doc.text(resumo, MARGEM, y);
   y += 13;
@@ -645,6 +638,15 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
   doc.setDrawColor(220, 222, 230);
   doc.setLineWidth(0.8);
   doc.line(MARGEM, y, LARGURA_PAG - MARGEM, y);
+  y += 12;
+
+  // Resultado geral em percentual (13/10/2026). "Não validadas" = conversa
+  // sem veredito de sucesso/falha (encerrada antes, erro, sem resultado).
+  y = desenharResumoResultados(doc, MARGEM, y, LARGURA_UTIL, [
+    { rotulo: "sucesso", quantidade: sucesso, cor: COR_SUCESSO },
+    { rotulo: "falha", quantidade: falha, cor: COR_FALHA },
+    { rotulo: outros === 1 ? "não validada" : "não validadas", quantidade: outros, cor: COR_MUTED },
+  ]);
   y += 18;
   doc.setTextColor(...COR_TEXTO);
 
@@ -785,11 +787,13 @@ export async function gerarRelatorioSimulacaoPdf(opts: OpcoesRelatorio): Promise
     doc.text(`${p} de ${total}`, LARGURA_PAG - MARGEM, ALTURA_PAG - 20, { align: "right" });
   }
 
-  const carimbo = agora.toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  const nomeArquivo =
-    grupos.length === 1 && grupos[0].test
-      ? `relatorio-${slug(grupos[0].nome)}-${carimbo}.pdf`
-      : `relatorio-simulacoes-${carimbo}.pdf`;
+  // "Relatório QA꞉ Spam - Documento ∣ 05-10-2026 15h10.pdf" — ver lib/nomeRelatorio.ts.
+  // Mais de uma simulação no relatório: "Simulações".
+  const nomeArquivo = nomearRelatorio(
+    doc,
+    grupos.length === 1 && grupos[0].test ? grupos[0].nome : "Simulações",
+    agora
+  );
   doc.save(nomeArquivo);
   return nomeArquivo;
 }

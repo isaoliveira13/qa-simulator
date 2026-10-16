@@ -174,8 +174,20 @@ export async function POST(req: NextRequest) {
       // "novo": monta a partir do teste salvo (test) ou da config avulsa.
       // cenarioOverride/criterioOverride (cenário individual dessa pessoa)
       // tem prioridade sobre o Template do teste salvo, quando vier.
-      let cenario = test ? cenarioOverride ?? test.cenario : avulso!.cenario;
-      let criterioSucesso = test ? criterioOverride ?? test.criterioSucesso : avulso!.criterioSucesso;
+      // Cenário individual salvo na simulação (01/10/2026): o card da lista
+      // mandava a pessoa sem cenarioOverride/criterioOverride, então todo
+      // mundo rodava com o cenário/critério GERAIS — e, sem critério geral, o
+      // resultado saía "Encerrado". Resolver aqui, pela posição da pessoa,
+      // faz valer o dela em qualquer tela que chame a rota. O que o cliente
+      // mandar explicitamente continua tendo prioridade.
+      const overrideSalvo =
+        test && test.cenariosIndividuaisAtivo && pessoaIndex != null
+          ? test.overridesPorPessoa?.[String(pessoaIndex)]
+          : undefined;
+      const cenarioDaPessoa = cenarioOverride || overrideSalvo?.cenario || undefined;
+      const criterioDaPessoa = criterioOverride || overrideSalvo?.criterio || undefined;
+      let cenario = test ? cenarioDaPessoa ?? test.cenario : avulso!.cenario;
+      let criterioSucesso = test ? criterioDaPessoa ?? test.criterioSucesso : avulso!.criterioSucesso;
       let dadosFixos: Record<string, unknown> | undefined = test ? test.dadosFixos : undefined;
 
       // --- Embaralhamento de dados (etapa 4 do assistente, 02/09/2026) ---
@@ -321,6 +333,9 @@ export async function POST(req: NextRequest) {
       transcricao: data.transcricao,
       sentimento: data.sentimento_zenta,
       startedAt: data.inicio,
+      // O criterio que o motor de fato usou nesta conversa (o da simulacao ou o
+      // do cenario individual da pessoa, ja preenchido). O relatorio le daqui.
+      criterioSucesso: data.criterio_sucesso ?? "",
       ...(data.embaralhamento ? { embaralhamento: data.embaralhamento } : {}),
       ...(personaId ? { personaId } : {}),
       ...(personaNome ? { personaNome } : {}),

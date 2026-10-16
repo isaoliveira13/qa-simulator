@@ -160,3 +160,14 @@ export function IconArrowDown({ size = 14, className }: IconProps) {
           </svg>
         );
 }
+
+// Suite fixada no topo da lista (13/10/2026) — alfinete, como no WhatsApp.
+export function IconPin({ size = 14, className }: IconProps) {
+    return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}>
+                  <path d="M15 4.5l4.5 4.5" />
+                  <path d="M16.8 6.2l-4.6 4.6-3.6-.6-1.4 1.4 5.2 5.2 1.4-1.4-.6-3.6 4.6-4.6" />
+                  <path d="M9.9 14.1L4.5 19.5" />
+          </svg>
+        );
+}

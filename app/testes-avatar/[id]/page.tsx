@@ -8,6 +8,7 @@ import { ListaAnexos } from "@/components/anexos-turno";
 import { IconCheck, IconPencil, IconTrash, IconX } from "../../icons";
 import { PessoaLinha, pessoaDoLoteParaLinha } from "@/lib/loteText";
 import { pessoaLinhaParaDados, preencherTemplate } from "@/lib/personaTemplate";
+import { postarRun } from "@/lib/postarRun";
 import { abrirRelatorioPDF } from "@/lib/conversationReport";
 import { useLoteBatch } from "@/lib/useLoteBatch";
 import { resumirEmbaralhamento } from "@/lib/embaralhar";
@@ -141,12 +142,7 @@ export default function FichaSimulacaoPage() {
     encerrar?: boolean;
     pessoa?: PessoaLinha;
   }): Promise<ProxyResponse> {
-    const res = await fetch("/api/avatar-tests/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ avatarTestId: id, ...body }),
-    });
-    const data = await res.json();
+    const data = await postarRun({ avatarTestId: id, ...body });
     if (data.error) throw new Error(data.error);
     return data;
   }
@@ -261,6 +257,10 @@ export default function FichaSimulacaoPage() {
   const editarHref = (etapa: number) => `/testes-avatar/${id}/editar?etapa=${etapa}`;
   const overrides = test.overridesPorPessoa || {};
   const comCenarioProprio = test.cenariosIndividuaisAtivo ? Object.keys(overrides).length : 0;
+  // Critério escrito dentro do cenário de uma pessoa (vale no lugar do geral).
+  const criteriosProprios = test.cenariosIndividuaisAtivo
+    ? Object.values(overrides).filter((o) => o?.criterio?.trim()).length
+    : 0;
   const rodando = running || batchRunning;
   const ultima = runs[0];
   const apiLabel = (test.baseUrl || "https://api.zenta.to").replace(/^https?:\/\//, "");
@@ -419,8 +419,11 @@ export default function FichaSimulacaoPage() {
 
             <div className="ficha-block">
               <div className="ficha-label">Critério de sucesso</div>
-              <p className={`ficha-read${test.criterioSucesso ? "" : " vazio"}`}>
-                {test.criterioSucesso || "Nenhum critério definido — a IA decide pelo desfecho da conversa."}
+              <p className={`ficha-read${test.criterioSucesso || criteriosProprios > 0 ? "" : " vazio"}`}>
+                {test.criterioSucesso ||
+                  (criteriosProprios > 0
+                    ? "Sem critério geral — cada pessoa tem o seu, escrito no cenário dela (veja a tabela abaixo)."
+                    : "Nenhum critério definido — a IA decide pelo desfecho da conversa.")}
               </p>
             </div>
 
@@ -433,6 +436,7 @@ export default function FichaSimulacaoPage() {
                       <tr>
                         <th>Pessoa</th>
                         <th>Cenário em vigor</th>
+                        <th>Critério em vigor</th>
                         <th>Vem de</th>
                       </tr>
                     </thead>
@@ -445,6 +449,12 @@ export default function FichaSimulacaoPage() {
                               <strong>{p.nome || "Sem nome"}</strong>
                             </td>
                             <td>{preview(efetivo.texto)}</td>
+                            <td>
+                              {(() => {
+                                const crit = (overrides[String(idx)]?.criterio || test.criterioSucesso || "").trim();
+                                return crit ? preview(preencherTemplate(crit, pessoaLinhaParaDados(p))) : "—";
+                              })()}
+                            </td>
                             <td>
                               <span className={`origem-tag ${efetivo.proprio ? "proprio" : "simulacao"}`}>
                                 {efetivo.proprio ? "escrito pra ela" : "cenário da simulação"}

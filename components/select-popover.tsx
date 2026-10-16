@@ -8,10 +8,14 @@ type Props = {
   options: string[];
   onChange: (value: string) => void;
   formatOption?: (value: string) => string;
+  /** Texto do botão quando nada está escolhido (padrão: o próprio allLabel). */
+  placeholder?: string;
+  /** Destaca o botão quando há valor escolhido (mesmo visual de filtro ativo). */
+  highlightWhenSet?: boolean;
 };
 
 /** Dropdown de seleção única com o mesmo visual dos demais popovers do site (em vez do <select> nativo do navegador). */
-export function SelectPopover({ allLabel, value, options, onChange, formatOption }: Props) {
+export function SelectPopover({ allLabel, value, options, onChange, formatOption, placeholder, highlightWhenSet }: Props) {
   function itemStyle(active: boolean) {
     return {
       display: "flex",
@@ -39,7 +43,7 @@ export function SelectPopover({ allLabel, value, options, onChange, formatOption
       trigger={({ toggle }) => (
         <button
           type="button"
-          className="btn-secondary"
+          className={`btn-secondary${highlightWhenSet && value ? " active" : ""}`}
           onClick={toggle}
           style={{
             display: "inline-flex",
@@ -49,7 +53,7 @@ export function SelectPopover({ allLabel, value, options, onChange, formatOption
             minWidth: 170,
           }}
         >
-          <span>{value ? (formatOption ? formatOption(value) : value) : allLabel}</span>
+          <span>{value ? (formatOption ? formatOption(value) : value) : placeholder ?? allLabel}</span>
           <span style={{ opacity: 0.5, fontSize: 11 }}>▾</span>
         </button>
       )}

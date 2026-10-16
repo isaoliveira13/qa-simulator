@@ -113,31 +113,51 @@ a {
   color: #1f1400;
 }
 
-/* ---------- Topbar ---------- */
+/* ---------- Menu lateral (15/10/2026) ---------- */
+/* Substituiu a fileira de abas do topo — mesmo formato do menu do
+   equipe-hub. --menu-largura fica no :root porque a Biblioteca
+   (.page-with-sidebar) precisa saber quanto da tela o menu ocupa. */
 
-.topbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 14px 28px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-}
+:root { --menu-largura: 260px; }
+[data-menu="fechado"] { --menu-largura: 68px; }
 
-.brand-col {
+.app-shell { display: flex; min-height: 100vh; }
+.app-main { flex: 1; min-width: 0; }
+
+.menu-lateral {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: none;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  width: var(--menu-largura);
+  height: 100vh;
+  padding: 14px 12px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  transition: width 0.18s ease;
+  overflow: hidden;
+}
+
+.menu-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 14px;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   font-weight: 600;
   font-size: 15px;
   letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
 }
 
 .brand-mark {
@@ -152,65 +172,91 @@ a {
   flex-shrink: 0;
 }
 
-.topbar-right {
+.brand-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.menu-alternar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+}
+.menu-alternar:hover { color: var(--text); border-color: var(--border-strong); }
+.menu-alternar span { display: inline-flex; }
+.menu-alternar .so-fechado { display: none; }
+
+.menu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.menu-item {
   display: flex;
   align-items: center;
-}
-
-.topbar nav a {
-  margin-left: 4px;
-  padding: 7px 12px;
+  gap: 10px;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
-  text-decoration: none;
   color: var(--muted);
+  text-decoration: none;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13.5px;
+  white-space: nowrap;
   transition: background 0.12s ease, color 0.12s ease;
 }
+.menu-item:hover { background: var(--bg); color: var(--text); }
+.menu-item.ativo { background: var(--accent); color: #fff; }
+[data-theme="dark"] .menu-item.ativo { background: var(--btn-primary-bg); color: var(--btn-primary-fg); }
+.menu-nav.avatar .menu-item.ativo { background: var(--avatar-accent); color: #fff; }
+[data-theme="dark"] .menu-nav.avatar .menu-item.ativo { background: #115e59; color: #ccfbf1; }
+.menu-icone { display: inline-flex; flex: none; }
 
-.topbar nav a:hover {
-  color: var(--text);
-  background: var(--bg);
-}
-
-.topbar nav a.active {
-  color: var(--accent-dark);
-  background: var(--accent-soft);
-}
-
-.topbar nav.avatar a.active {
-  color: var(--avatar-accent);
-  background: var(--avatar-accent-soft);
+.menu-rodape {
+  display: flex;
+  align-items: center;
+  padding: 12px 4px 0;
+  border-top: 1px solid var(--border);
 }
 
 /* ---------- Seletor de modo (Scripts / Avatar IA) ---------- */
 /* Separa visualmente os dois domínios do hub: scripts Playwright de um
    lado, testes de avatar de IA do outro — são entidades totalmente
-   diferentes no banco, então o menu principal deixou de misturar os dois
-   numa fileira só (Isa pediu em 13/08/2026). Fica preso embaixo do logo
-   (.brand-col), fora da fileira de abas à direita, pra não mudar de
-   posição quando a fileira muda de tamanho entre os modos (ajuste pedido
-   por Isa depois de ver o primeiro rascunho, mesmo dia). */
+   diferentes no banco (Isa pediu em 13/08/2026). Desde 15/10/2026 fica
+   dentro do menu lateral, logo abaixo do logo, acima dos itens. */
 
 .mode-switch {
-  display: inline-flex;
+  display: flex;
   gap: 2px;
   padding: 3px;
+  margin: 0 0 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 999px;
 }
 
 .mode-switch-btn {
+  flex: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   text-decoration: none;
+  white-space: nowrap;
   transition: background 0.12s ease, color 0.12s ease;
 }
 
@@ -239,7 +285,6 @@ a {
   justify-content: center;
   cursor: pointer;
   color: var(--muted);
-  margin-left: 16px;
   padding: 0;
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
@@ -249,6 +294,28 @@ a {
   border-color: var(--border-strong);
   color: var(--text);
 }
+
+/* Recolhido: só os ícones */
+[data-menu="fechado"] .brand-nome,
+[data-menu="fechado"] .menu-lateral .menu-rotulo { display: none; }
+[data-menu="fechado"] .menu-topo { flex-direction: column; padding: 2px 0 10px; }
+[data-menu="fechado"] .menu-item { justify-content: center; padding: 9px 0; }
+[data-menu="fechado"] .mode-switch { flex-direction: column; border-radius: 14px; }
+[data-menu="fechado"] .mode-switch-btn { padding: 8px 0; }
+[data-menu="fechado"] .menu-rodape { justify-content: center; padding: 12px 0 0; }
+[data-menu="fechado"] .menu-alternar .so-aberto { display: none; }
+[data-menu="fechado"] .menu-alternar .so-fechado { display: inline-flex; }
+
+@media (max-width: 720px) {
+  :root, [data-menu="fechado"] { --menu-largura: 68px; }
+  .brand-nome, .menu-lateral .menu-rotulo, .menu-alternar { display: none; }
+  .menu-topo { justify-content: center; padding: 2px 0 10px; }
+  .menu-item { justify-content: center; padding: 9px 0; }
+  .mode-switch { flex-direction: column; border-radius: 14px; }
+  .mode-switch-btn { padding: 8px 0; }
+  .menu-rodape { justify-content: center; padding: 12px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) { .menu-lateral { transition: none; } }
 
 .container {
   max-width: 960px;
@@ -1015,6 +1082,35 @@ input[type="file"]::file-selector-button:hover {
   margin-bottom: 12px;
 }
 
+/* Biblioteca vendo uma suíte na ordem dela (05/10/2026) */
+.suite-ativa-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 13px;
+}
+.suite-ativa-bar span {
+  flex: 1 1 auto;
+}
+.suite-ativa-bar a,
+.suite-ativa-bar .link-btn {
+  color: var(--accent-dark);
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 /* ---------- Modais ---------- */
 
 .modal-backdrop {
@@ -1154,10 +1250,12 @@ input[type="file"]::file-selector-button:hover {
 .page-with-sidebar {
   display: flex;
   align-items: flex-start;
-  width: 100vw;
+  /* Ocupa a área toda à direita do menu lateral (15/10/2026), não mais a
+     largura da janela inteira — senão as Pastas ficavam por baixo do menu. */
+  width: calc(100vw - var(--menu-largura));
   position: relative;
   left: 50%;
-  margin-left: -50vw;
+  margin-left: calc((100vw - var(--menu-largura)) / -2);
   margin-top: -32px;
 }
 
@@ -1547,10 +1645,24 @@ input[type="file"]::file-selector-button:hover {
 
 /* ---------- Menu do card ---------- */
 
+/* Reticências no canto superior direito do card, numa coluna SÓ DELAS
+   (13/10/2026). Antes ficavam em right: 12px — bem em cima do último botão da
+   linha de ação, e pareciam fazer parte dele ("Rodar no terminal" na Suítes,
+   "Editar" na Biblioteca). Agora o card com menu reserva 36px na direita: os
+   botões terminam antes dessa coluna e as reticências ficam encostadas no
+   canto, com um respiro entre os dois. Vale pra todo card que tiver o menu
+   como filho direto (Biblioteca, Suítes); o menu inline da Simulações
+   (position: relative no próprio elemento) não é afetado. */
 .card-menu-wrap {
   position: absolute;
-  top: 6px;
-  right: 12px;
+  top: 8px;
+  right: 6px;
+}
+
+/* 13/10/2026, ajuste: 52px deixou as reticências longe demais dos botões;
+   36px dá ~15px de respiro visual — separado, mas ainda parte do card. */
+.card:has(> .card-menu-wrap) {
+  padding-right: 36px;
 }
 
 .card-menu-btn {
@@ -1758,6 +1870,87 @@ input[type="file"]::file-selector-button:hover {
   background: var(--danger);
   border-color: var(--danger);
   color: #fff;
+}
+
+/* ---------- Checklist: placar + linha na cor da marcação (15/10/2026) ----------
+   Mesmo desenho do Checklist do equipe-hub. A linha marcada ganha o fundo
+   suave da cor do resultado (verde = aprovado, vermelho = reprovado). */
+:root {
+  --success-soft: #f0fdf4;
+  --success-text: #15803d;
+}
+[data-theme="dark"] {
+  --success-soft: #10241a;
+  --success-text: #86efac;
+}
+
+.ck-placar-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.ck-placar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ck-placar > div {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.ck-placar b {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.ck-placar span { color: var(--muted); font-size: 12.5px; }
+.ck-placar .ck-p-pass { background: var(--success-soft); }
+.ck-placar .ck-p-pass b, .ck-placar .ck-p-pass span { color: var(--success-text); }
+.ck-placar .ck-p-fail { background: var(--danger-soft); }
+.ck-placar .ck-p-fail b, .ck-placar .ck-p-fail span { color: var(--danger-text); }
+.ck-barra {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+}
+.ck-barra span { display: block; height: 100%; transition: width 0.35s ease; }
+.ck-barra .pass { background: var(--success); }
+.ck-barra .fail { background: var(--danger); }
+.ck-barra-legenda {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.checklist-row.marked-pass,
+.checklist-row.marked-pass:hover {
+  background: var(--success-soft);
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+}
+.checklist-row.marked-fail,
+.checklist-row.marked-fail:hover {
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+}
+.checklist-row.marked-pass .checklist-status-label { color: var(--success-text); }
+
+@media (max-width: 560px) {
+  .ck-placar { gap: 6px; }
+  .ck-placar > div { padding: 8px 10px; }
+  .ck-placar b { font-size: 19px; }
 }
 
 /* ---------- Tela de gerenciamento de tags ---------- */
@@ -2056,7 +2249,7 @@ input[type="file"]::file-selector-button:hover {
 /* Motivo do erro de uma pessoa do lote, logo abaixo do nome. Mostra a
    mensagem que veio da rota /run em vez de deixar so a pilula "Erro" — era
    impossivel saber se a simulacao nao rodou por config faltando, avatar
-   inexistente na Zenta ou motor fora do ar. */
+   inexistente no destino configurado ou motor fora do ar. */
 .lote-card-erro {
   margin: 0;
   font-size: 12px;
@@ -2734,55 +2927,119 @@ input[type="file"]::file-selector-button:hover {
   margin-left: 10px;
 }
 
-/* Switch de destino: mesmo desenho do seletor Scripts/Avatar IA do header
-   (.mode-switch) — capsula com fundo do plano de fundo e o segmento escolhido
-   em branco com sombra. Um escolhido por vez em cada dimensao. */
-/* Bem baixo de proposito (pedido da Isa em 25/08/2026): mantem a largura dos
-   rotulos, mas ocupa pouca altura pra nao competir com o titulo do card. */
-.destino-switch {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
-
-.destino-seg {
+/* Seletor de destino (13/10/2026): no lugar das duas fileiras de pilulas,
+   uma pilula por dimensao mostrando so o escolhido — clicar abre o menu
+   (components/destino-switch.tsx). Mesma altura baixa das pilulas antigas
+   (pedido da Isa em 25/08/2026: nao competir com o titulo do card). */
+.destino-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 1px 10px;
-  border: none;
-  background: none;
+  padding: 1px 8px 1px 10px;
+  border: 1px solid transparent;
   border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-family: inherit;
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.65;
-  color: var(--muted);
+  white-space: nowrap;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
-.destino-seg:hover:not(:disabled) {
-  color: var(--text);
-}
-
-.destino-seg.sel {
-  background: var(--card);
-  color: var(--accent-dark);
-  box-shadow: var(--shadow-sm);
-}
-
-.destino-switch.avatar .destino-seg.sel {
+.destino-pill.avatar {
+  background: var(--avatar-accent-soft);
   color: var(--avatar-accent);
 }
 
-/* Enquanto a troca esta sendo gravada (ou a simulacao esta rodando), o switch
-   nao aceita clique — evita mudar o destino no meio de uma conversa. */
-.destino-seg:disabled {
+.destino-pill:hover:not(:disabled),
+.destino-pill.aberto {
+  border-color: currentColor;
+}
+
+.destino-pill:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sem nada escolhido (ex.: o avatar da simulacao foi apagado da aba Avatares). */
+.destino-pill.vazio {
+  background: transparent;
+  color: var(--muted);
+  border: 1px dashed var(--border-strong);
+}
+
+.destino-pill-seta {
+  flex: none;
+  opacity: 0.75;
+  transition: transform 0.12s ease;
+}
+
+.destino-pill.aberto .destino-pill-seta {
+  transform: rotate(180deg);
+}
+
+/* Enquanto a troca esta sendo gravada (ou a simulacao esta rodando), o
+   seletor nao abre — evita mudar o destino no meio de uma conversa. */
+.destino-pill:disabled {
   cursor: default;
   opacity: 0.55;
+}
+
+.destino-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.destino-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.destino-menu-item:hover {
+  background: var(--bg);
+}
+
+.destino-menu-item.sub {
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.destino-menu-item.ativo,
+.destino-menu-item.ativo:hover {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.destino-menu.avatar .destino-menu-item.ativo,
+.destino-menu.avatar .destino-menu-item.ativo:hover {
+  background: var(--avatar-accent-soft);
+  color: var(--avatar-accent);
+}
+
+.destino-menu-vazio {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 6px 8px;
 }
 
 
@@ -3746,6 +4003,32 @@ input[type="file"]::file-selector-button:hover {
   color: var(--muted);
 }
 
+/* Etiquetas por script na importacao em lote (09/10/2026). */
+.import-tags {
+  margin-top: 8px;
+  align-items: center;
+}
+
+.import-tags-label {
+  font-size: 11px;
+  color: var(--muted-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-right: 2px;
+}
+
+button.tag.import-tag {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+button.tag.import-tag:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 .import-aviso {
   margin-top: 6px;
   font-size: 12px;
@@ -4146,16 +4429,6 @@ a.card-menu-item {
   margin-top: 6px;
 }
 
-.anexo-pill .anexo-nome {
-  color: var(--text);
-  font-weight: 500;
-  min-width: 0;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ===== Prioridade por ambiente (13/10/2026) — ver lib/prioridade.ts =====
    Seis tons de calor, um por degrau de criticidade (1 = PROD·nível 1 ... 6 =
    HML/STG·nível 3). Paleta propria, separada das cores das etiquetas. */
@@ -4209,7 +4482,7 @@ a.card-menu-item {
 .prio-h4 { background: var(--prio-h4-bg); color: var(--prio-h4-fg); }
 .prio-h5 { background: var(--prio-h5-bg); color: var(--prio-h5-fg); }
 .prio-h6 { background: var(--prio-h6-bg); color: var(--prio-h6-fg); }
-/* Nivel definido, mas ambiente fora da regra (ex.: features): sem tom de calor. */
+/* Nivel definido, mas ambiente fora da regra (fora de HML/STG/PROD): sem tom de calor. */
 .prio-fora { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
 .prio-sem { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
 
@@ -4248,3 +4521,716 @@ a.card-menu-item {
 }
 .prio-grupo::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .prio-grupo .prio-grupo-qtd { font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+/* ---------- Suíte fixada no topo (13/10/2026) ----------
+   Igual fixar conversa no WhatsApp: alfinete ao lado do nome (clicável pra
+   desafixar) e uma borda esquerda discreta no card, pra a fixada se destacar
+   sem gritar. */
+.suite-titulo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.suite-pin {
+  background: none;
+  border: none;
+  padding: 3px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.suite-pin:hover {
+  background: var(--accent-soft);
+}
+
+.card.card-fixada {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* O hover do .card troca o box-shadow; sem isto a faixa da fixada sumia. */
+.card.card-fixada:hover {
+  box-shadow: inset 3px 0 0 var(--accent), var(--shadow-sm);
+}
+
+/* ---------- Momentos (13/10/2026) ----------
+   Lembrete com nome do que rodar em cada momento do dia, com check verde.
+   O verde usa --success (mesmo dos checks da aba Checklist). */
+
+.momento-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.momento-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.momento-card.completo {
+  border-color: var(--success);
+  box-shadow: inset 3px 0 0 var(--success);
+}
+
+.momento-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.momento-head-info {
+  min-width: 0;
+}
+
+.momento-head-info h3 {
+  margin: 0 0 4px;
+  font-size: 15.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.momento-head-info .meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.momento-selo {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--success);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+[data-theme="dark"] .momento-selo {
+  color: #0d0e12;
+}
+
+.momento-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+/* O menu de reticências aqui fica na linha dos botões, não preso no canto do card. */
+.card-menu-wrap.momento-menu-wrap {
+  position: relative;
+  top: auto;
+  right: auto;
+}
+
+.momento-progresso {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin: 12px 0 10px;
+}
+
+.momento-progresso > span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.momento-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.momento-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.momento-item.feito {
+  border-color: rgba(22, 163, 74, 0.35);
+  background: rgba(22, 163, 74, 0.06);
+}
+
+[data-theme="dark"] .momento-item.feito {
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(74, 222, 128, 0.07);
+}
+
+.momento-check {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--card);
+  color: #fff;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+
+.momento-check:hover {
+  border-color: var(--success);
+}
+
+.momento-check:active {
+  transform: scale(0.92);
+}
+
+.momento-check[aria-pressed="true"] {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+[data-theme="dark"] .momento-check[aria-pressed="true"] {
+  color: #0d0e12;
+}
+
+.momento-check:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.momento-tipo {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.momento-tipo.script {
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.momento-item-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.momento-item-nome {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.momento-item-nome:hover {
+  text-decoration: underline;
+}
+
+.momento-item.feito .momento-item-nome {
+  color: var(--muted);
+}
+
+.momento-item-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.momento-hora {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.momento-rodar {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  padding: 5px 8px;
+}
+
+@media (max-width: 720px) {
+  .momento-head {
+    flex-wrap: wrap;
+  }
+
+  .momento-item {
+    flex-wrap: wrap;
+  }
+
+  .momento-item-info {
+    flex-basis: calc(100% - 100px);
+    flex-wrap: wrap;
+  }
+}
+
+/* Editor (modal de criar/editar): reaproveita as colunas da montagem da suíte. */
+.momento-editor {
+  max-width: 940px;
+}
+
+.momento-editor .suite-col-body {
+  max-height: 46vh;
+}
+
+.momento-aba {
+  display: flex;
+  gap: 6px;
+}
+
+.momento-aba button {
+  padding: 6px 12px;
+}
+
+.momento-busca {
+  padding: 10px 10px 0;
+  margin-bottom: 0;
+}
+
+/* ---------- Acoes em massa da Biblioteca (13/10/2026) ----------
+   Prioridade e etiquetas pra selecao toda + "Selecionar por etiqueta".
+   Ver components/acoes-em-massa.tsx. */
+.select-all-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.select-all-row .em-massa-gatilho {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.em-massa-direita { display: inline-flex; align-items: center; gap: 8px; }
+.em-massa-qtd {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.prio-menu-item.ativo .em-massa-qtd { color: var(--accent-dark); }
+.em-massa-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+.em-massa-linha {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.3;
+  padding: 7px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text);
+}
+.em-massa-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-massa-vazio { padding: 12px 4px; font-size: 13px; color: var(--muted); margin: 0; }
+.em-massa-criar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.em-massa-criar-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 7px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--accent-dark);
+}
+.em-massa-msg {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.em-massa-msg.ok { color: var(--success); }
+.em-massa-msg.err { color: var(--danger); }
+.em-massa-msg button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- Hierarquia de scripts — pai e filhos (13/10/2026) ----------
+   Ver lib/hierarquia.ts. O pai tem chevron na esquerda e a pilula "N dentro";
+   os filhos aparecem recuados embaixo dele, com um "cotovelo" ligando ao pai,
+   como pastas do computador. Fechado por padrao. */
+.hier-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.hier-bar .link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  cursor: pointer;
+}
+.hier-bar .link-btn:hover { text-decoration: underline; }
+.hier-bar-erro { color: var(--danger); font-weight: 500; }
+
+.hier-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: -8px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.hier-toggle:hover { background: var(--accent-soft); color: var(--accent-dark); }
+.hier-toggle.vazio { visibility: hidden; cursor: default; }
+
+.hier-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.hier-qtd {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hier-qtd:hover,
+.hier-qtd.aberto { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+
+.hier-pai-fora { color: var(--muted-soft); font-style: italic; }
+
+/* Filho: recuado (marginLeft inline, 32px por nivel) e um pouco mais leve.
+   Linha-guia: ::before e a vertical (atravessa o vao ate o proximo irmao),
+   ::after e o tracinho ate o card. No ultimo filho a vertical para no meio
+   do card e vira "cotovelo". */
+.card.card-filho {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  margin-top: -4px;
+}
+.card.card-filho::before,
+.card.card-filho::after {
+  content: "";
+  position: absolute;
+  left: -19px;
+  pointer-events: none;
+  border-color: var(--border-strong);
+  border-style: solid;
+  border-width: 0;
+}
+.card.card-filho::before {
+  top: -8px;
+  bottom: -8px;
+  border-left-width: 1.5px;
+}
+.card.card-filho::after {
+  top: 50%;
+  width: 14px;
+  border-top-width: 1.5px;
+}
+.card.card-filho.ultimo::before {
+  bottom: auto;
+  height: calc(50% + 8px);
+  width: 14px;
+  border-bottom-width: 1.5px;
+  border-bottom-left-radius: 8px;
+}
+.card.card-filho.ultimo::after { display: none; }
+.card.card-filho .card-info h3 { font-size: 14px; }
+
+.card-menu.card-menu-largo { min-width: 230px; }
+
+/* Modal "Colocar dentro de..." */
+.hier-modal { max-width: 560px; }
+.hier-especiais {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 14px 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.hier-busca {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text);
+}
+.hier-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.hier-opcao {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.hier-opcao:hover:not(:disabled) { background: var(--bg); }
+.hier-opcao:disabled { opacity: 0.55; cursor: default; }
+.hier-opcao.ativo { background: var(--accent-soft); color: var(--accent-dark); }
+.hier-opcao-nome {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hier-opcao-onde { flex: 0 0 auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* "Tirar os N filhos da selecao" na barra de Selecionar varios (13/10/2026). */
+.batch-count { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.tirar-filhos-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.batch-count-texto { font-style: normal; }
+
+/* Modal "Colocar dentro de...": onde vale (13/10/2026) — so este script x
+   todos os ambientes e avatares. Pilula segmentada no topo. */
+.hier-alcance {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 12px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.hier-alcance-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hier-alcance-btn:hover { color: var(--text); }
+.hier-alcance-btn.ativo {
+  background: var(--card);
+  color: var(--accent-dark);
+  box-shadow: var(--shadow-sm);
+}
+.hier-aviso { color: var(--accent-dark); }
+
+/* Modal "Adicionar filhos..." (13/10/2026) — caixas de marcar na lista. */
+.hier-opcao.hier-filho { justify-content: flex-start; align-items: center; gap: 10px; }
+.hier-opcao.hier-filho .hier-opcao-nome { flex: 1 1 auto; }
+.hier-filhos-acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -2px 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.hier-filhos-acoes span { flex: 1 1 auto; }
+.hier-filhos-acoes button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  cursor: pointer;
+}
+.hier-filhos-acoes button:hover { text-decoration: underline; }
+.hier-filhos-resumo { flex: 1 1 auto; align-self: center; font-size: 13px; color: var(--muted); }
+
+/* ---------- Modal "Informações" do card da Biblioteca (13/10/2026) ---------- */
+
+.info-modal-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.info-modal-secao {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.info-modal-rotulo {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.info-modal-valor {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.info-modal-vazio {
+  color: var(--muted);
+}
+
+.info-modal-suites {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-modal-suites li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.info-modal-suites a {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-modal-pos {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}

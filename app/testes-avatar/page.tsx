@@ -15,6 +15,7 @@ import { usePersistedState } from "@/lib/usePersistedState";
 import { DestinoSwitch, DimensaoDestino } from "@/components/destino-switch";
 // Prioridade por ambiente (13/10/2026) — ver lib/prioridade.ts.
 import { PrioridadeSeletor } from "@/components/prioridade-seletor";
+import { lerJson } from "@/lib/lerJson";
 import { chaveDeOrdem, Nivel, OPCOES_FILTRO, rotuloDoFiltro, rotuloDoGrupo } from "@/lib/prioridade";
 import { useAvatares } from "@/lib/useAvatares";
 import { gerarRelatorioSimulacaoPdf } from "@/lib/relatorioSimulacao";
@@ -358,7 +359,7 @@ export default function TestesAvatarPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prioridade: nivel }),
       });
-      const data = await res.json();
+      const data = await lerJson(res);
       if (data.error) throw new Error(data.error);
     } catch (e: any) {
       setTests(antes);

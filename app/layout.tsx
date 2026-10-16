@@ -1,8 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
-import ThemeToggle from "./theme-toggle";
-import { IconMessageCircle } from "./icons";
-import { AvatarTabs } from "../components/avatar-nav";
+import MenuLateral from "../components/menu-lateral";
 import { DemoBanner } from "../components/demo-banner";
 
 const faviconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>`;
@@ -21,31 +19,24 @@ const themeInitScript = `
     var stored = localStorage.getItem('theme');
     var theme = stored === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
+    var menu = localStorage.getItem('menu');
+    document.documentElement.setAttribute('data-menu', menu === 'fechado' ? 'fechado' : 'aberto');
   } catch (e) {}
 })();
 `;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-menu="aberto" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <DemoBanner />
-        <header className="topbar">
-          <div className="brand-col">
-            <span className="brand">
-              <span className="brand-mark">
-                <IconMessageCircle size={16} />
-              </span>
-              QA Simulator Chat
-            </span>
+        <div className="app-shell">
+          <MenuLateral />
+          <div className="app-main">
+            <DemoBanner />
+            <main className="container">{children}</main>
           </div>
-          <div className="topbar-right">
-            <AvatarTabs />
-            <ThemeToggle />
-          </div>
-        </header>
-        <main className="container">{children}</main>
+        </div>
       </body>
     </html>
   );

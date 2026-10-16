@@ -5,8 +5,9 @@
  * em lugares diferentes:
  *
  * - NIVEL (1, 2 ou 3): pertence ao teste. Um script de nivel 2 em HML e nivel
- *   2 no equivalente de PROD — por isso o nivel e guardado pela FAMILIA do
- *   script (nome sem o prefixo de ambiente), nunca por linha. Simulacao do
+ *   2 no equivalente de PROD (e no mesmo teste de outro avatar) — por isso o
+ *   nivel e guardado pela FAMILIA do script (nome sem o prefixo de ambiente e
+ *   sem o avatar), nunca por linha. Simulacao do
  *   Avatar IA ja e uma linha so pra todos os ambientes, entao o nivel e dela.
  * - PESO DO AMBIENTE: regra fixa. PROD > HML = STG. Vem do ambiente do script
  *   (ou do destino escolhido no switch da simulacao); ninguem marca nada.
@@ -17,9 +18,8 @@
  *
  *   1 PROD·1   2 PROD·2   3 PROD·3   4 HML/STG·1   5 HML/STG·2   6 HML/STG·3
  *
- * O ambiente "features" fica FORA da regra por enquanto (decisao de
- * 13/10/2026): o nivel aparece no selo, mas sem tom de calor, e na ordenacao
- * ele vem depois dos seis degraus.
+ * Ambiente fora de HML/STG/PROD fica FORA da regra: o nivel aparece no selo,
+ * mas sem tom de calor, e na ordenacao ele vem depois dos seis degraus.
  */
 
 export type Nivel = 1 | 2 | 3;
@@ -82,23 +82,46 @@ function semAcento(s: string): string {
 }
 
 /**
- * Familia de um script: o nome sem o prefixo de ambiente, com o avatar na
- * frente, em minusculas e sem acento.
- *   "HML_isa_campanha-template-imagem" (avatar isa) -> "isa_campanha-template-imagem"
- *   "PROD_isa_campanha-template-imagem"             -> a mesma
- * Script com nome fora do padrao AMBIENTE_avatar_descricao ganha o avatar na
- * frente, pra dois avatares com o mesmo nome livre nao virarem uma familia so.
+ * Familia de um script: o nome sem o prefixo de ambiente e sem o avatar, em
+ * minusculas e sem acento. Equivalentes compartilham o nivel:
+ *   "HML_isa_campanha-template-imagem"       (avatar isa)      -> "campanha-template-imagem"
+ *   "PROD_isa_campanha-template-imagem"      (avatar isa)      -> a mesma
+ *   "STG_isabella_campanha-template-imagem"  (avatar isabella) -> a mesma
+ * 13/10/2026: primeiro a familia ignorava so o ambiente; no mesmo dia a Isa
+ * pediu pra ignorar o avatar tambem (mesmo teste em Isa e Isabella = mesmo
+ * nivel). Chaves antigas ("script:isa_campanha...") foram convertidas por
+ * db/migracoes/2026-10-13-prioridade-sem-avatar.sql.
  */
 export function familiaDoScript(nome: string, avatar: string): string {
-  const limpo = semAcento(nome.trim().toLowerCase()).replace(/^(hml|stg|prod|features)_/, "");
+  const limpo = semAcento(nome.trim().toLowerCase()).replace(/^(hml|stg|prod)_/, "");
   const av = semAcento((avatar || "").trim().toLowerCase());
-  if (!av || limpo.startsWith(`${av}_`)) return limpo;
-  return `${av}_${limpo}`;
+  if (av && limpo.startsWith(`${av}_`)) return limpo.slice(av.length + 1);
+  return limpo;
 }
 
 /** Chave na tabela `prioridades` para um script (compartilhada pelos equivalentes). */
 export function chaveDoScript(s: { name: string; avatar: string }): string {
   return `script:${familiaDoScript(s.name, s.avatar)}`;
+}
+
+/** Chave na tabela `prioridades` para uma suite. */
+export function chaveDaSuite(id: string): string {
+  return `suite:${id}`;
+}
+
+/**
+ * Ambiente de uma SUITE (13/10/2026): a suite nao tem campo de ambiente, entao
+ * ele vem das etiquetas dela — etiqueta "PROD" da o peso de PROD, "HML" ou
+ * "STG" dao o peso de HML/STG. Se a suite tiver as duas, vale a mais
+ * importante (PROD). Sem etiqueta de ambiente, devolve "" (fora da regra:
+ * o nivel aparece sem tom de calor).
+ */
+export function ambienteDaSuite(tags: string[] | undefined | null): string {
+  const t = (tags || []).map((x) => x.trim().toLowerCase());
+  if (t.includes("prod")) return "prod";
+  if (t.includes("hml")) return "hml";
+  if (t.includes("stg")) return "stg";
+  return "";
 }
 
 /** Chave na tabela `prioridades` para uma simulacao do Avatar IA. */

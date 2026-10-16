@@ -572,6 +572,8 @@ export async function saveAvatarTestRun(input: {
   ambienteExecucao?: string;
   avatarExecucao?: string;
   embaralhamento?: string;
+  /** Critério de sucesso que valeu nesta execução ("" = rodou sem critério). */
+  criterioSucesso?: string;
 }): Promise<AvatarTestRun> {
   const s = store();
   const run: AvatarTestRun = {
@@ -592,6 +594,7 @@ export async function saveAvatarTestRun(input: {
     ...(input.ambienteExecucao ? { ambienteExecucao: input.ambienteExecucao } : {}),
     ...(input.avatarExecucao ? { avatarExecucao: input.avatarExecucao } : {}),
     ...(input.embaralhamento ? { embaralhamento: input.embaralhamento } : {}),
+    ...(input.criterioSucesso != null ? { criterioSucesso: input.criterioSucesso } : {}),
   };
   s.avatarTestRuns.unshift(run);
   return clone(run);

@@ -7,6 +7,7 @@
 // lugares. Mesmo algoritmo do iniciarLote do coisasdaisa (index.html).
 
 import { useCallback, useRef, useState } from "react";
+import { postarRun } from "./postarRun";
 import { AvatarTurn } from "./types";
 import { PessoaLinha } from "./loteText";
 import { ConversationReportData } from "./conversationReport";
@@ -73,16 +74,11 @@ export function useLoteBatch(
       cenarioOverride?: string;
       criterioOverride?: string;
     }): Promise<ProxyResponse> => {
-      const res = await fetch("/api/avatar-tests/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...buildBaseBody(),
-          ...body,
-          ...(body.conversationId ? {} : buildNovoBody()),
-        }),
+      const data = await postarRun({
+        ...buildBaseBody(),
+        ...body,
+        ...(body.conversationId ? {} : buildNovoBody()),
       });
-      const data = await res.json();
       if (data.error) throw new Error(data.error);
       return data;
     },
