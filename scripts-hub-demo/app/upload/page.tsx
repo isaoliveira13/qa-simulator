@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Framework, Tag } from "@/lib/types";
 import { TagPopover } from "@/components/tag-popover";
 import { TELAS } from "@/lib/telas";
+// Prioridade por ambiente (13/10/2026) — ver lib/prioridade.ts.
+import { PrioridadeSeletor } from "@/components/prioridade-seletor";
+import { lerJson } from "@/lib/lerJson";
+import { chaveDoScript, MapaPrioridades, Nivel } from "@/lib/prioridade";
 
 const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
@@ -39,6 +43,14 @@ function UploadForm() {
     const [uploadingAttachment, setUploadingAttachment] = useState(false);
     const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
+  // Prioridade (13/10/2026): o nivel e da FAMILIA do script (nome sem o
+  // prefixo de ambiente). Enquanto ela nao mexer no seletor, o campo mostra o
+  // nivel que a familia ja tem — escolher outro troca o de todos os
+  // equivalentes (HML/STG/PROD).
+  const [prioridades, setPrioridades] = useState<MapaPrioridades>({});
+  const [nivel, setNivel] = useState<Nivel | null>(null);
+  const [nivelTocado, setNivelTocado] = useState(false);
+
   useEffect(() => {
         fetch("/api/tags")
           .then((r) => r.json())
@@ -47,6 +59,23 @@ function UploadForm() {
           })
           .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch("/api/prioridades", { cache: "no-store" })
+      .then((r) => lerJson(r))
+      .then((data) => {
+        if (!data.error && data.prioridades) setPrioridades(data.prioridades);
+      })
+      .catch(() => {});
+  }, []);
+
+  const chavePrioridade = name.trim() && avatar.trim() ? chaveDoScript({ name: name.trim(), avatar: avatar.trim() }) : "";
+  const nivelDaFamilia: Nivel | null = chavePrioridade ? prioridades[chavePrioridade] ?? null : null;
+
+  // Sem toque dela, acompanha o nivel da familia (que muda conforme o nome).
+  useEffect(() => {
+    if (!nivelTocado) setNivel(nivelDaFamilia);
+  }, [nivelDaFamilia, nivelTocado]);
 
   useEffect(() => {
         if (!editId) return;
@@ -158,6 +187,21 @@ function UploadForm() {
           });
                 const data = await res.json();
                 if (data.error) throw new Error(data.error);
+
+                // Prioridade: so grava se for diferente do que a familia ja tem.
+                const chaveFinal = chaveDoScript({ name: name.trim(), avatar: avatar.trim() });
+                if (nivel !== (prioridades[chaveFinal] ?? null)) {
+                  const resPrio = await fetch("/api/prioridades", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chave: chaveFinal, nivel }),
+                  });
+                  const dataPrio = await lerJson(resPrio);
+                  if (dataPrio.error) {
+                    throw new Error(`Script salvo, mas a prioridade não: ${dataPrio.error}`);
+                  }
+                }
+
                 setMsg({ text: isEditing ? "Script atualizado com sucesso!" : "Script salvo com sucesso!", ok: true });
                 setTimeout(() => router.push("/"), 900);
         } catch (err: any) {
@@ -302,6 +346,28 @@ function UploadForm() {
             <div className="hint">
               Para criar, editar ou apagar tags do catálogo, use a aba{" "}
               <a href="/tags">Tags</a>.
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Prioridade</label>
+            <div>
+              <PrioridadeSeletor
+                nivel={nivel}
+                ambiente={ambiente}
+                alcance="Vale para este teste em todos os ambientes e avatares"
+                onChange={(n) => {
+                  setNivel(n);
+                  setNivelTocado(true);
+                }}
+              />
+            </div>
+            <div className="hint">
+              {nivelDaFamilia && !nivelTocado
+                ? `Este teste já é nível ${nivelDaFamilia} em outro ambiente ou avatar, e herda esse nível. Trocar aqui muda o de todos.`
+                : nivelDaFamilia && nivel !== nivelDaFamilia
+                  ? `Os equivalentes nos outros ambientes e avatares estão no nível ${nivelDaFamilia} e vão passar para ${nivel ? `o nível ${nivel}` : "sem prioridade"} ao salvar.`
+                  : "Nível 1, 2 ou 3. O mesmo nível vale para este teste em HML, STG e PROD e em todos os avatares."}
             </div>
           </div>
         </div>

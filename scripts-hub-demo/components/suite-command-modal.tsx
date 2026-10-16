@@ -14,25 +14,29 @@ import { buildSequenceCommand } from "@/lib/comandoLote";
  */
 export function SuiteCommandModal({
   nome,
+  titulo,
   scripts,
   onClose,
 }: {
   nome: string;
+  /** Título no lugar de 'Comando da suíte "<nome>"' (aba Momentos, 13/10/2026). */
+  titulo?: string;
   /** Scripts JÁ na ordem da sequência. */
   scripts: ScriptEntry[];
   onClose: () => void;
 }) {
-  const [sleep, setSleep] = useState(true);
+  // 15/10/2026: o intervalo vem desligado e --workers=1/--headed ligados.
+  const [sleep, setSleep] = useState(false);
   const [sleepSeconds, setSleepSeconds] = useState(10);
-  const [workers, setWorkers] = useState(false);
-  const [headed, setHeaded] = useState(false);
+  const [workers, setWorkers] = useState(true);
+  const [headed, setHeaded] = useState(true);
 
   const comando = buildSequenceCommand(scripts, { sleep, sleepSeconds, workers, headed });
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Comando da suíte "{nome}"</h3>
+        <h3>{titulo ?? `Comando da suíte "${nome}"`}</h3>
         <p className="hint">
           Os testes entram na ordem da sequência. Copie e cole no terminal.
         </p>

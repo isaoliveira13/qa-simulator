@@ -4,12 +4,17 @@ import {
   Draft,
   DraftVersion,
   Execution,
+  Momento,
+  MomentoItem,
+  MomentoItemTipo,
   SavedFilter,
   ScriptEntry,
   Suite,
   Tag,
 } from "./types";
 import { slugify } from "./slug";
+import { chaveDaSuite, ehNivel, MapaPrioridades, Nivel } from "./prioridade";
+import { corrigirEtiquetaFilho, ehEtiquetaFilho, ETIQUETA_FILHO } from "./hierarquia";
 
 /**
  * MODO DEMO — este arquivo substitui inteiramente o Postgres do hub original.
@@ -63,6 +68,12 @@ interface Store {
   draftVersions: DraftVersion[];
   coverageItems: CoverageItem[];
   savedFilters: SavedFilter[];
+  /** Prioridade por ambiente (13/10/2026): chave ("script:<familia>", "suite:<id>") -> nível. */
+  prioridades: MapaPrioridades;
+  /** Hierarquia organizada na mão: família -> pai ("" = fica na raiz). */
+  scriptPais: Record<string, string>;
+  /** Momentos (13/10/2026). */
+  momentos: Momento[];
 }
 
 function clone<T>(value: T): T {
@@ -186,6 +197,61 @@ function seed(): { data: Store; contents: Record<string, string> } {
       createdAt: isoHaDias(1),
       ordem: 1_000_001,
     },
+    // Família "campanha" (15/10/2026): um pai e dois filhos, pra quem visita
+    // ver a hierarquia pai/filho (o pai é reconhecido sozinho pelo nome) — e
+    // um equivalente em PROD, que divide o mesmo nível de prioridade.
+    {
+      id: "nimbus-hml-campanha-demo7",
+      name: "campanha",
+      avatar: "Nimbus",
+      ambiente: "hml",
+      cenario: "Abrir a tela de campanhas",
+      tela: "Campanhas",
+      tags: ["regressão"],
+      framework: "playwright",
+      path: "tests-playwright/nimbus/hml/campanha.spec.ts",
+      createdAt: isoHaDias(6),
+      ordem: 1_000_000,
+    },
+    {
+      id: "nimbus-hml-campanha-template-imagem-demo8",
+      name: "campanha-template-imagem",
+      avatar: "Nimbus",
+      ambiente: "hml",
+      cenario: "Disparar campanha com template de imagem",
+      tela: "Campanhas",
+      tags: ["regressão"],
+      framework: "playwright",
+      path: "tests-playwright/nimbus/hml/campanha-template-imagem.spec.ts",
+      createdAt: isoHaDias(6),
+      ordem: 999_999,
+    },
+    {
+      id: "nimbus-hml-campanha-template-texto-demo9",
+      name: "campanha-template-texto",
+      avatar: "Nimbus",
+      ambiente: "hml",
+      cenario: "Disparar campanha com template de texto",
+      tela: "Campanhas",
+      tags: ["regressão"],
+      framework: "playwright",
+      path: "tests-playwright/nimbus/hml/campanha-template-texto.spec.ts",
+      createdAt: isoHaDias(6),
+      ordem: 999_998,
+    },
+    {
+      id: "nimbus-prod-campanha-template-imagem-demo10",
+      name: "campanha-template-imagem",
+      avatar: "Nimbus",
+      ambiente: "prod",
+      cenario: "Disparar campanha com template de imagem",
+      tela: "Campanhas",
+      tags: ["crítico"],
+      framework: "playwright",
+      path: "tests-playwright/nimbus/prod/campanha-template-imagem.spec.ts",
+      createdAt: isoHaDias(2),
+      ordem: 999_997,
+    },
   ];
 
   const scriptsContent: Record<string, string> = {
@@ -195,6 +261,10 @@ function seed(): { data: Store; contents: Record<string, string> } {
     "aurora-prod-automacao-simples-demo4": PLAYWRIGHT_SAMPLE.replace("login básico", "automação simples"),
     "nimbus-prod-buscar-tickets-demo5": CYPRESS_SAMPLE.replace("anexo de imagem numa conversa", "busca de tickets por termo"),
     "aurora-hml-encerrar-conversa-demo6": PLAYWRIGHT_SAMPLE.replace("login básico", "encerrar conversa"),
+    "nimbus-hml-campanha-demo7": PLAYWRIGHT_SAMPLE.replace("login básico", "tela de campanhas"),
+    "nimbus-hml-campanha-template-imagem-demo8": PLAYWRIGHT_SAMPLE.replace("login básico", "campanha com template de imagem"),
+    "nimbus-hml-campanha-template-texto-demo9": PLAYWRIGHT_SAMPLE.replace("login básico", "campanha com template de texto"),
+    "nimbus-prod-campanha-template-imagem-demo10": PLAYWRIGHT_SAMPLE.replace("login básico", "campanha com template de imagem"),
   };
 
   const tags: Tag[] = [
@@ -206,6 +276,12 @@ function seed(): { data: Store; contents: Record<string, string> } {
     { name: "mobile", color: "#0891b2" },
     { name: "flaky", color: "#db2777" },
     { name: "financeiro", color: "#16a34a" },
+    // Etiquetas de ambiente: dão o peso da prioridade nas suítes.
+    { name: "HML", color: "#0ea5e9" },
+    { name: "PROD", color: "#ef4444" },
+    { name: "STG", color: "#a855f7" },
+    // Marcada sozinha em todo script que é filho de outro.
+    { name: ETIQUETA_FILHO, color: "#64748b" },
   ];
 
   const suites: Suite[] = [
@@ -213,7 +289,7 @@ function seed(): { data: Store; contents: Record<string, string> } {
       id: "suite-demo-smoke-hml",
       name: "Smoke — homologação",
       scriptIds: ["nimbus-hml-login-basico-demo1", "nimbus-hml-envio-texto-demo2"],
-      tags: ["smoke"],
+      tags: ["smoke", "HML"],
       createdAt: isoHaDias(9),
       // Ja vem fixada no topo, pra quem visita a demo ver o alfinete.
       fixadaEm: isoHaDias(1),
@@ -368,7 +444,35 @@ test('cadastra um novo contato', async ({ page }) => {
     draftVersions,
     coverageItems,
     savedFilters,
+    // Níveis de exemplo — a família vale pros equivalentes em todos os
+    // ambientes (campanha-template-imagem em HML e PROD dividem o nível 2).
+    prioridades: {
+      "script:login basico": 1,
+      "script:campanha": 1,
+      "script:campanha-template-imagem": 2,
+      "script:criar automacao simples": 1,
+      "script:buscar tickets por termo": 3,
+      [chaveDaSuite("suite-demo-smoke-hml")]: 1,
+    },
+    scriptPais: {},
+    momentos: [
+      {
+        id: "momento-demo-manha",
+        nome: "Manhã pós-deploy",
+        createdAt: isoHaDias(5),
+        itens: [
+          { tipo: "suite", refId: "suite-demo-smoke-hml", feitoEm: null },
+          { tipo: "script", refId: "nimbus-prod-buscar-tickets-demo5", feitoEm: null },
+          { tipo: "script", refId: "nimbus-prod-campanha-template-imagem-demo10", feitoEm: null },
+        ],
+      },
+    ],
   };
+  // Os filhos de exemplo já nascem com a etiqueta "Filho".
+  for (const d of corrigirEtiquetaFilho(data.scripts, data.scriptPais, ETIQUETA_FILHO)) {
+    const sc = data.scripts.find((x) => x.id === d.id);
+    if (sc) sc.tags = d.tags;
+  }
 
   // Conteúdo indexado por id (mesmo papel da coluna `content` da tabela
   // `scripts` no banco real) — guardado separado do resto do Store porque só
@@ -478,6 +582,8 @@ export async function deleteScript(id: string): Promise<{ deleted: boolean; atta
   if (index === -1) return { deleted: false };
   const [removed] = s.scripts.splice(index, 1);
   delete contents()[id];
+  // O script some tambem dos Momentos (13/10/2026).
+  tirarDosMomentos("script", id);
   return { deleted: true, ...(removed.attachmentPath ? { attachmentPath: removed.attachmentPath } : {}) };
 }
 
@@ -593,7 +699,13 @@ export async function deleteSuite(id: string): Promise<boolean> {
   const s = store();
   const before = s.suites.length;
   s.suites = s.suites.filter((su) => su.id !== id);
-  return s.suites.length < before;
+  const apagou = s.suites.length < before;
+  if (apagou) {
+    // Prioridade e Momentos da suite saem junto (13/10/2026).
+    delete s.prioridades[chaveDaSuite(id)];
+    tirarDosMomentos("suite", id);
+  }
+  return apagou;
 }
 
 // --- Histórico de execução (registro manual) ---
@@ -914,4 +1026,166 @@ export async function deleteSavedFilter(id: string): Promise<boolean> {
   const before = s.savedFilters.length;
   s.savedFilters = s.savedFilters.filter((f) => f.id !== id);
   return s.savedFilters.length < before;
+}
+
+// --- Prioridade por ambiente (13/10/2026) — ver lib/prioridade.ts ---
+//
+// Um mapa só pros usos todos, chave texto:
+//   "script:<familia>" -> nível de todos os scripts equivalentes (HML/STG/PROD)
+//   "suite:<id>"       -> nível de uma suíte (peso pela etiqueta PROD/HML/STG)
+
+export async function listPrioridades(): Promise<MapaPrioridades> {
+  return clone(store().prioridades);
+}
+
+/** Grava (ou apaga, com `null`) o nível de uma chave. */
+export async function setPrioridade(chave: string, nivel: Nivel | null): Promise<void> {
+  const p = store().prioridades;
+  if (nivel && ehNivel(nivel)) p[chave] = nivel;
+  else delete p[chave];
+}
+
+/** Prioridade EM MASSA: o mesmo nível (ou nenhum, com `null`) em várias chaves. */
+export async function setPrioridadesEmMassa(chaves: string[], nivel: Nivel | null): Promise<void> {
+  const unicas = Array.from(new Set(chaves.map((c) => c.trim()).filter(Boolean)));
+  for (const c of unicas) await setPrioridade(c, nivel);
+}
+
+// --- Momentos (13/10/2026) ---
+//
+// Lembrete com nome que junta suítes e testes isolados, cada um com um check.
+// A regra de que o check só vale no dia em que foi marcado mora na tela
+// (lib/momentos.ts), não aqui.
+
+export const MAX_MOMENTOS_DEMO = 10;
+
+function ehTipoDeItem(v: unknown): v is MomentoItemTipo {
+  return v === "suite" || v === "script";
+}
+
+/** Tira item repetido (mesmo tipo + id), mantendo a PRIMEIRA ocorrência. */
+function itensUnicos(itens: { tipo: MomentoItemTipo; refId: string }[]) {
+  const vistos = new Set<string>();
+  const out: { tipo: MomentoItemTipo; refId: string }[] = [];
+  for (const i of itens) {
+    if (!ehTipoDeItem(i?.tipo) || !i.refId) continue;
+    const k = `${i.tipo}:${i.refId}`;
+    if (vistos.has(k)) continue;
+    vistos.add(k);
+    out.push({ tipo: i.tipo, refId: String(i.refId) });
+  }
+  return out;
+}
+
+/**
+ * Regrava a lista de itens na ordem recebida. O item que CONTINUA na lista
+ * mantém o check dele — senão editar o momento no meio do dia apagaria os
+ * checks já dados.
+ */
+function gravarItens(m: Momento, itens: { tipo: MomentoItemTipo; refId: string }[]) {
+  const antes = new Map(m.itens.map((i) => [`${i.tipo}:${i.refId}`, i.feitoEm]));
+  m.itens = itensUnicos(itens).map(
+    (i): MomentoItem => ({ ...i, feitoEm: antes.get(`${i.tipo}:${i.refId}`) ?? null })
+  );
+}
+
+export async function listMomentos(): Promise<Momento[]> {
+  return clone(store().momentos).sort((a: Momento, b: Momento) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function getMomento(id: string): Promise<Momento | null> {
+  const m = store().momentos.find((x) => x.id === id);
+  return m ? clone(m) : null;
+}
+
+export async function createMomento(
+  nome: string,
+  itens: { tipo: MomentoItemTipo; refId: string }[]
+): Promise<Momento> {
+  const s = store();
+  if (s.momentos.length >= MAX_MOMENTOS_DEMO) {
+    throw new Error(`Esta é uma demonstração: no máximo ${MAX_MOMENTOS_DEMO} momentos ao mesmo tempo. Apague um antes de criar outro.`);
+  }
+  const m: Momento = { id: randomUUID(), nome, createdAt: isoAgora(), itens: [] };
+  gravarItens(m, itens);
+  s.momentos.push(m);
+  return clone(m);
+}
+
+export async function updateMomento(
+  id: string,
+  changes: {
+    nome?: string;
+    itens?: { tipo: MomentoItemTipo; refId: string }[];
+    /** Marca/desmarca UM item (o check verde). */
+    marcar?: { tipo: MomentoItemTipo; refId: string; feito: boolean };
+    /** Zera todos os checks do momento (rodar de novo no mesmo dia). */
+    recomecar?: boolean;
+  }
+): Promise<Momento> {
+  const m = store().momentos.find((x) => x.id === id);
+  if (!m) throw new Error("Momento não encontrado.");
+  if (changes.nome) m.nome = changes.nome;
+  if (changes.itens) gravarItens(m, changes.itens);
+  if (changes.recomecar) m.itens.forEach((i) => (i.feitoEm = null));
+  if (changes.marcar) {
+    const { tipo, refId, feito } = changes.marcar;
+    if (!ehTipoDeItem(tipo)) throw new Error("Tipo de item inválido.");
+    const item = m.itens.find((i) => i.tipo === tipo && i.refId === refId);
+    if (!item) throw new Error("Esse item não está mais no momento.");
+    item.feitoEm = feito ? isoAgora() : null;
+  }
+  return clone(m);
+}
+
+export async function deleteMomento(id: string): Promise<boolean> {
+  const s = store();
+  const antes = s.momentos.length;
+  s.momentos = s.momentos.filter((m) => m.id !== id);
+  return s.momentos.length < antes;
+}
+
+/** Suíte/script apagado sai dos momentos. */
+function tirarDosMomentos(tipo: MomentoItemTipo, refId: string) {
+  for (const m of store().momentos) m.itens = m.itens.filter((i) => !(i.tipo === tipo && i.refId === refId));
+}
+
+// --- Hierarquia de scripts — pai e filhos (13/10/2026). Ver lib/hierarquia.ts. ---
+// Só guarda o que foi organizado na mão: família -> pai ("" = fica na raiz).
+// Quem não está no mapa usa o pai automático pelo nome.
+
+export async function listPaisDeScripts(): Promise<Record<string, string>> {
+  return clone(store().scriptPais);
+}
+
+/**
+ * Define o pai de várias famílias de uma vez. `pai`:
+ * - string com família -> coloca dentro dela
+ * - ""                 -> fica na raiz (desliga o automático)
+ * - null               -> apaga o registro manual (volta ao automático)
+ */
+export async function setPaiDeScripts(familias: string[], pai: string | null): Promise<void> {
+  const mapa = store().scriptPais;
+  for (const f of Array.from(new Set(familias.map((x) => x.trim()).filter(Boolean)))) {
+    if (pai === null) delete mapa[f];
+    else mapa[f] = pai;
+  }
+}
+
+/**
+ * Etiqueta "Filho" automática — ver corrigirEtiquetaFilho em lib/hierarquia.ts.
+ * Roda depois de tudo que muda quem é filho e devolve só os scripts que
+ * mudaram, pra tela atualizar.
+ */
+export async function sincronizarEtiquetaFilho(): Promise<{ id: string; tags: string[] }[]> {
+  const [scripts, pais, catalogo] = await Promise.all([listScripts(), listPaisDeScripts(), listTags()]);
+  let nome = catalogo.find((t) => ehEtiquetaFilho(t.name))?.name;
+  const diffs = corrigirEtiquetaFilho(scripts, pais, nome ?? ETIQUETA_FILHO);
+  if (diffs.length === 0) return [];
+  if (!nome && diffs.some((d) => d.tags.some(ehEtiquetaFilho))) {
+    await addTags([{ name: ETIQUETA_FILHO }]);
+    nome = ETIQUETA_FILHO;
+  }
+  for (const d of diffs) await updateScriptTags(d.id, d.tags);
+  return diffs;
 }

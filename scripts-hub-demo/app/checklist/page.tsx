@@ -9,6 +9,8 @@ import { emptyFilter, filterValueCount, matchesFilter, MultiFilter, normalizeFil
 import { SCRIPT_FILTER_KEYS } from "@/lib/sharedFilterKeys";
 import { SavedFilters } from "@/components/saved-filters";
 import { tagPillStyle, sortTagsByColor } from "@/lib/tagColor";
+import { desenharResumoResultados } from "@/lib/resumoResultados";
+import { nomearRelatorio } from "@/lib/nomeRelatorio";
 import { usePersistedState } from "@/lib/usePersistedState";
 
 type MarkStatus = "pass" | "fail";
@@ -173,6 +175,10 @@ export default function ChecklistPage() {
     : filteredRaw;
 
   const verifiedCount = filtered.filter((s) => marks[s.id]).length;
+  const passCount = filtered.filter((s) => marks[s.id] === "pass").length;
+  const failCount = filtered.filter((s) => marks[s.id] === "fail").length;
+  const pendingCount = filtered.length - passCount - failCount;
+  const pctOf = (n: number) => (filtered.length ? (n / filtered.length) * 100 : 0);
   const hasActiveFilter =
     filterValueCount(suiteFilter) > 0 ||
     filterValueCount(avatarFilter) > 0 ||
@@ -227,6 +233,23 @@ export default function ChecklistPage() {
       doc.text(suiteEmOrdem ? `Suíte: ${suiteEmOrdem.name} · ${summaryLine}` : summaryLine, 40, 58);
       doc.setTextColor(20);
 
+      // Resultado geral em percentual (13/10/2026), com os mesmos nomes da
+      // coluna Status: aprovado, reprovado e não verificado.
+      const aprovados = filtered.filter((s) => marks[s.id] === "pass").length;
+      const reprovados = filtered.filter((s) => marks[s.id] === "fail").length;
+      const pendentes = filtered.length - aprovados - reprovados;
+      const fimResumo = desenharResumoResultados(
+        doc,
+        40,
+        68,
+        doc.internal.pageSize.getWidth() - 80,
+        [
+          { rotulo: aprovados === 1 ? "aprovado" : "aprovados", quantidade: aprovados, cor: [22, 163, 74] },
+          { rotulo: reprovados === 1 ? "reprovado" : "reprovados", quantidade: reprovados, cor: [220, 38, 38] },
+          { rotulo: pendentes === 1 ? "não verificado" : "não verificados", quantidade: pendentes, cor: [107, 114, 128] },
+        ]
+      );
+
       const rows = filtered.map((s) => [
         s.name,
         s.avatar,
@@ -238,7 +261,7 @@ export default function ChecklistPage() {
       ]);
 
       autoTable(doc, {
-        startY: 74,
+        startY: fimResumo + 12,
         head: [["Nome", "Avatar", "Ambiente", "Cenário", "Sistema", "Tags", "Status"]],
         body: rows,
         styles: { fontSize: 9, cellPadding: 6 },
@@ -262,8 +285,15 @@ export default function ChecklistPage() {
         margin: { bottom: 40 },
       });
 
-      const fileDate = now.toISOString().slice(0, 19).replace(/[:T]/g, "-");
-      doc.save(`checklist-${fileDate}.pdf`);
+      // Mesmo padrão dos relatórios de simulação (13/10/2026):
+      // "Relatório QA꞉ <assunto> ∣ 13-10-2026 17h40.pdf". O assunto é a suíte
+      // escolhida no filtro; um script só, o nome dele; senão, "Checklist".
+      const assunto = suiteEmOrdem
+        ? `Checklist - ${suiteEmOrdem.name}`
+        : filtered.length === 1
+        ? filtered[0].name
+        : "Checklist";
+      doc.save(nomearRelatorio(doc, assunto, now));
     } catch (e: any) {
       setError(e.message || String(e));
     } finally {
@@ -359,9 +389,38 @@ export default function ChecklistPage() {
         />
       </div>
 
-      <div className="checklist-summary">
-        {verifiedCount}/{filtered.length} verificados
-      </div>
+      {/* Placar das marcações (15/10/2026, mesmo desenho do Checklist do
+          equipe-hub): três quadros com a contagem de cada situação, barra
+          verde/vermelha proporcional e "X de N verificados". Conta só os
+          scripts que aparecem com o filtro atual. */}
+      {!loading && !error && filtered.length > 0 && (
+        <section className="ck-placar-card" aria-label="Situação das marcações">
+          <div className="ck-placar">
+            <div className="ck-p-pass">
+              <b>{passCount}</b>
+              <span>{passCount === 1 ? "Aprovado" : "Aprovados"}</span>
+            </div>
+            <div className="ck-p-fail">
+              <b>{failCount}</b>
+              <span>{failCount === 1 ? "Reprovado" : "Reprovados"}</span>
+            </div>
+            <div>
+              <b>{pendingCount}</b>
+              <span>Não verificado{pendingCount === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+          <div className="ck-barra" aria-hidden>
+            <span className="pass" style={{ width: `${pctOf(passCount)}%` }} />
+            <span className="fail" style={{ width: `${pctOf(failCount)}%` }} />
+          </div>
+          <div className="ck-barra-legenda">
+            <span>
+              {verifiedCount} de {filtered.length} verificado{filtered.length === 1 ? "" : "s"}
+            </span>
+            <span>{Math.round(pctOf(verifiedCount))}%</span>
+          </div>
+        </section>
+      )}
 
       {loading && <p className="empty">Carregando...</p>}
       {error && <p className="status-msg err">{error}</p>}
@@ -372,7 +431,7 @@ export default function ChecklistPage() {
       {filtered.map((s) => {
         const status = marks[s.id];
         return (
-          <div className="checklist-row" key={s.id}>
+          <div className={`checklist-row${status ? ` marked-${status}` : ""}`} key={s.id}>
             <div className="checklist-row-info">
               <div className="checklist-row-title">
                 {suiteEmOrdem ? (

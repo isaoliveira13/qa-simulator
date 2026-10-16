@@ -155,3 +155,32 @@ export interface SavedFilter {
   busca: string;
   createdAt: string;
 }
+
+/**
+ * Momentos (13/10/2026) — aba "Momentos" em Scripts.
+ *
+ * Um momento e um lembrete com nome ("Manha pos-deploy") que junta as suites e
+ * os testes isolados (scripts fora de suite) que a Isa precisa rodar naquele
+ * momento do dia. Cada item tem um check verde.
+ */
+export type MomentoItemTipo = "suite" | "script";
+
+export interface MomentoItem {
+  tipo: MomentoItemTipo;
+  /** suites.id (tipo "suite") ou scripts.id (tipo "script"). */
+  refId: string;
+  /**
+   * Quando foi marcado como rodado (ISO), ou null. A TELA so considera
+   * marcado se for do dia de hoje (horario de Brasilia) — o banco guarda o
+   * horario e quem decide "hoje" e lib/momentos.ts.
+   */
+  feitoEm: string | null;
+}
+
+export interface Momento {
+  id: string;
+  nome: string;
+  createdAt: string;
+  /** Ja na ordem que a Isa montou. */
+  itens: MomentoItem[];
+}

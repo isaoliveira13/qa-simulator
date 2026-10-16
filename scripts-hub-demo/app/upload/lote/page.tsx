@@ -13,13 +13,24 @@
  * pasta por vez, e os testes dela moram em pastas diferentes. Por isso cada
  * selecao/varredura **soma** na lista em vez de substituir, e da pra memorizar
  * VARIAS pastas — "Varrer pastas" passa em todas de uma vez.
+ *
+ * 09/10/2026: etiqueta por script. Alem das etiquetas do lote (bloco 2), cada
+ * teste novo da lista tem a propria linha de etiquetas com o "+" redondo dos
+ * cards. Da pra acrescentar uma etiqueta so naquele script e tambem tirar dele
+ * uma etiqueta do lote — o resto do lote continua com ela.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Framework, ScriptEntry, Tag } from "@/lib/types";
 import { TagPopover } from "@/components/tag-popover";
+import { TagQuickAdd } from "@/components/tag-quick-add";
+import { sortTagsByColor, tagPillStyle } from "@/lib/tagColor";
 import { TELAS } from "@/lib/telas";
+// Prioridade por ambiente (13/10/2026) — ver lib/prioridade.ts.
+import { PrioridadeSeletor } from "@/components/prioridade-seletor";
+import { lerJson } from "@/lib/lerJson";
+import { chaveDoScript, MapaPrioridades, Nivel } from "@/lib/prioridade";
 import { ehArquivoDeTeste, lerNomeDoArquivo, normalizarParaExistentes } from "@/lib/importarTestes";
 import {
   adicionarPasta,
@@ -53,6 +64,15 @@ interface Item {
   /** Script ja existente na plataforma com o mesmo nome, quando houver. */
   existente?: ScriptEntry;
   marcado: boolean;
+  /** Etiquetas escolhidas so pra este script, alem das do lote. */
+  tagsExtras: string[];
+  /** Etiquetas do lote que ela tirou SO deste script. */
+  tagsTiradas: string[];
+  /**
+   * Prioridade escolhida na linha deste script (13/10/2026). `undefined` =
+   * nao mexeu: vale o nivel que a familia ja tem ou, se nao tiver, o do lote.
+   */
+  nivel?: Nivel | null;
   resultado?: Resultado;
   erro?: string;
 }
@@ -72,6 +92,9 @@ export default function ImportarEmLotePage() {
 
   const [tagsDoLote, setTagsDoLote] = useState<string[]>([]);
   const [telaDoLote, setTelaDoLote] = useState("");
+  // Prioridade pra todos os testes novos cuja familia ainda nao tem nivel.
+  const [nivelDoLote, setNivelDoLote] = useState<Nivel | null>(null);
+  const [prioridades, setPrioridades] = useState<MapaPrioridades>({});
   const [esconderExistentes, setEsconderExistentes] = useState(false);
 
   const [pastas, setPastas] = useState<HandleDePasta[]>([]);
@@ -96,6 +119,13 @@ export default function ImportarEmLotePage() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.error && Array.isArray(data.tags)) setAvailableTags(data.tags);
+      })
+      .catch(() => {});
+
+    fetch("/api/prioridades", { cache: "no-store" })
+      .then((r) => lerJson(r))
+      .then((data) => {
+        if (!data.error && data.prioridades) setPrioridades(data.prioridades);
       })
       .catch(() => {});
   }, []);
@@ -174,6 +204,8 @@ export default function ImportarEmLotePage() {
             avisos: lido.avisos,
             situacao: "novo",
             marcado: true,
+            tagsExtras: [],
+            tagsTiradas: [],
           });
         }
 
@@ -277,6 +309,60 @@ export default function ImportarEmLotePage() {
     setItens((prev) => prev.map((i) => (i.chave === chave ? { ...i, ...mudanca } : i)));
   }
 
+  /** Etiquetas que este script vai receber: as do lote (menos as tiradas dele) + as proprias. */
+  function tagsDoItem(item: Item): string[] {
+    const doLote = tagsDoLote.filter((t) => !item.tagsTiradas.includes(t));
+    return Array.from(new Set([...doLote, ...item.tagsExtras]));
+  }
+
+  /**
+   * Marca/desmarca uma etiqueta so neste script. Se a etiqueta vem do lote,
+   * desmarcar aqui tira ela so deste (e marcar de novo devolve); se nao vem,
+   * entra/sai da lista propria do script.
+   */
+  function alternarTagDoItem(chave: string, tag: string) {
+    setItens((prev) =>
+      prev.map((i) => {
+        if (i.chave !== chave) return i;
+        const doLote = tagsDoLote.includes(tag);
+        const tem = tagsDoItem(i).includes(tag);
+        if (tem) {
+          return {
+            ...i,
+            tagsExtras: i.tagsExtras.filter((t) => t !== tag),
+            tagsTiradas: doLote ? [...i.tagsTiradas, tag] : i.tagsTiradas,
+          };
+        }
+        return doLote
+          ? { ...i, tagsTiradas: i.tagsTiradas.filter((t) => t !== tag) }
+          : { ...i, tagsExtras: [...i.tagsExtras, tag] };
+      })
+    );
+  }
+
+  /** Chave de prioridade do script que esta linha vai criar/atualizar. */
+  function chavePrioDoItem(item: Item): string {
+    const nome = item.situacao !== "novo" && item.existente ? item.existente.name : item.nome.trim();
+    const avatar = item.situacao !== "novo" && item.existente ? item.existente.avatar : item.avatar.trim();
+    return nome && avatar ? chaveDoScript({ name: nome, avatar }) : "";
+  }
+
+  /**
+   * Nivel que este script vai ter: o escolhido na linha; senao o que a
+   * familia ja tem (equivalente de outro ambiente ja cadastrado); senao, pra
+   * teste novo, o do lote. Script que ja existe nao herda o do lote, igual as
+   * etiquetas.
+   */
+  function nivelDoItem(item: Item): Nivel | null {
+    if (item.nivel !== undefined) return item.nivel;
+    const chave = chavePrioDoItem(item);
+    const daFamilia = chave ? prioridades[chave] ?? null : null;
+    if (daFamilia) return daFamilia;
+    return item.situacao === "novo" ? nivelDoLote : null;
+  }
+
+  const corDaTag = useMemo(() => new Map(availableTags.map((t) => [t.name, t.color])), [availableTags]);
+
   const visiveis = useMemo(
     () => (esconderExistentes ? itens.filter((i) => i.situacao === "novo") : itens),
     [itens, esconderExistentes]
@@ -310,7 +396,7 @@ export default function ImportarEmLotePage() {
 
         // Ao atualizar um script que ja existe, so o conteudo vem do arquivo:
         // etiquetas, tela, anexo e agendamento ja configurados sao preservados.
-        const tagsFinais = atualizando ? item.existente!.tags || [] : Array.from(new Set([...tagsDoLote]));
+        const tagsFinais = atualizando ? item.existente!.tags || [] : tagsDoItem(item);
         const telaFinal = atualizando ? item.existente!.tela || "" : telaDoLote;
 
         const payload: Record<string, unknown> = {
@@ -335,6 +421,25 @@ export default function ImportarEmLotePage() {
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
+
+        // Prioridade da familia: so grava quando muda o que ja existe.
+        const chavePrio = chavePrioDoItem(item);
+        const nivelFinal = nivelDoItem(item);
+        if (chavePrio && nivelFinal !== (prioridades[chavePrio] ?? null)) {
+          const resPrio = await fetch("/api/prioridades", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chave: chavePrio, nivel: nivelFinal }),
+          });
+          const dataPrio = await lerJson(resPrio);
+          if (dataPrio.error) throw new Error(`Script importado, mas a prioridade não: ${dataPrio.error}`);
+          setPrioridades((prev) => {
+            const next = { ...prev };
+            if (nivelFinal) next[chavePrio] = nivelFinal;
+            else delete next[chavePrio];
+            return next;
+          });
+        }
 
         ok += 1;
         atualizarItem(item.chave, {
@@ -496,7 +601,7 @@ export default function ImportarEmLotePage() {
 
       {itens.length > 0 && (
         <div className="form-section">
-          <h2 className="form-section-title">2. Etiquetas e tela do lote (opcional)</h2>
+          <h2 className="form-section-title">2. Etiquetas, tela e prioridade do lote (opcional)</h2>
           <div className="row">
             <div className="field">
               <label>Etiquetas para todos os testes novos</label>
@@ -539,9 +644,26 @@ export default function ImportarEmLotePage() {
               </select>
             </div>
           </div>
+          <div className="field">
+            <label>Prioridade para os testes novos</label>
+            <div>
+              <PrioridadeSeletor
+                nivel={nivelDoLote}
+                ambiente=""
+                alcance="Vale para os testes novos cujo equivalente ainda não tem nível"
+                onChange={setNivelDoLote}
+                disabled={importando}
+              />
+            </div>
+          </div>
+          <div className="hint">
+            Teste que já tem nível em outro ambiente ou avatar herda esse nível, e não o do lote.
+            Pra mudar o nível de um teste só, use o selo na linha dele, em Revisar e importar.
+          </div>
           <div className="hint">
             Vale so para os testes novos. Quem ja existe na plataforma mantem as etiquetas, a tela e
-            o anexo que voce ja configurou — a importacao troca so o codigo do script.
+            o anexo que voce ja configurou — a importacao troca so o codigo do script. Pra etiquetar
+            um script so (ou tirar dele uma etiqueta do lote), use o + na linha dele, em Revisar e importar.
           </div>
         </div>
       )}
@@ -637,6 +759,59 @@ export default function ImportarEmLotePage() {
                       />
                     </label>
                   </div>
+
+                  {item.situacao === "novo" && !item.resultado && (
+                    <div className="tags import-tags">
+                      <span className="import-tags-label">Etiquetas</span>
+                      {sortTagsByColor(tagsDoItem(item), (t) => corDaTag.get(t)).map((t) => (
+                        <button
+                          type="button"
+                          key={t}
+                          className="tag import-tag"
+                          style={tagPillStyle(corDaTag.get(t))}
+                          onClick={() => alternarTagDoItem(item.chave, t)}
+                          disabled={importando}
+                          title={
+                            tagsDoLote.includes(t)
+                              ? "Etiqueta do lote — clique para tirar so deste script"
+                              : "Clique para tirar esta etiqueta"
+                          }
+                        >
+                          {t} ×
+                        </button>
+                      ))}
+                      <TagQuickAdd
+                        options={availableTags}
+                        selected={tagsDoItem(item)}
+                        onToggle={(t) => alternarTagDoItem(item.chave, t)}
+                        onCatalogChange={setAvailableTags}
+                        disabled={importando}
+                      />
+                    </div>
+                  )}
+
+                  {!item.resultado && (
+                    <div className="tags import-tags">
+                      <span className="import-tags-label">Prioridade</span>
+                      <PrioridadeSeletor
+                        nivel={nivelDoItem(item)}
+                        ambiente={item.situacao !== "novo" && item.existente ? item.existente.ambiente : item.ambiente}
+                        alcance="Vale para este teste em todos os ambientes e avatares"
+                        onChange={(n) => {
+                          // Equivalentes na mesma lista (HML_isa_x, PROD_isabella_x) andam juntos.
+                          const familia = chavePrioDoItem(item);
+                          setItens((prev) =>
+                            prev.map((i) =>
+                              i.chave === item.chave || (familia && chavePrioDoItem(i) === familia)
+                                ? { ...i, nivel: n }
+                                : i
+                            )
+                          );
+                        }}
+                        disabled={importando}
+                      />
+                    </div>
+                  )}
 
                   {item.avisos.length > 0 && item.situacao === "novo" && (
                     <div className="import-aviso">{item.avisos.join(" ")}</div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listScripts, saveScript } from "@/lib/db";
+import { listScripts, saveScript, sincronizarEtiquetaFilho } from "@/lib/db";
 import { deleteAttachment } from "@/lib/github";
 import { Framework, ScheduleConfig, ScriptEntry } from "@/lib/types";
 
@@ -110,6 +110,13 @@ export async function POST(req: NextRequest) {
     }
 
     await saveScript(entry, content);
+    // Hierarquia (13/10/2026): script novo/renomeado pode virar filho (ou pai
+    // de outros) — acerta a etiqueta "Filho". Nao derruba o salvar se falhar.
+    try {
+      const alterados = await sincronizarEtiquetaFilho();
+      const meu = alterados.find((a) => a.id === entry.id);
+      if (meu) entry.tags = meu.tags;
+    } catch {}
     return NextResponse.json({ entry });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

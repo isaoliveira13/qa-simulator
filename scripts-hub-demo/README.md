@@ -22,9 +22,17 @@ substituídas por equivalentes locais e fictícios** — ver detalhes abaixo.
 
 ## Como funciona
 
-- **Biblioteca** (`/`) — a tela inicial: todos os scripts, organizados por
-  avatar/ambiente numa barra lateral de pastas, com filtro por avatar,
-  ambiente e etiqueta, busca, seleção múltipla e arrastar-para-reordenar.
+A navegação fica num menu lateral, que pode ser recolhido pra mostrar só os
+ícones.
+
+- **Biblioteca** (`/`) — a tela inicial: todos os scripts, com filtro por
+  avatar, ambiente, prioridade e etiqueta, busca, seleção múltipla e
+  arrastar-para-reordenar. Scripts ficam em **hierarquia pai/filho** (o pai é
+  reconhecido sozinho pelo começo do nome, ou organizado na mão), e os filhos
+  ganham a etiqueta "Filho" automaticamente. Cada script tem **prioridade**
+  (nível 1 a 3, com o ambiente pesando: PROD vem antes de HML/STG), que vale
+  igual para o mesmo teste em todos os ambientes e avatares — e dá pra mudar
+  prioridade e etiquetas **em massa**.
 - **Enviar script** (`/upload`) — formulário de um script (ou edição de um já
   existente); **Importar em lote** (`/upload/lote`) — lê vários arquivos da
   sua máquina de uma vez e deduz nome/ambiente/avatar/cenário pelo nome do
@@ -32,11 +40,15 @@ substituídas por equivalentes locais e fictícios** — ver detalhes abaixo.
 - **Rascunhos** (`/rascunhos`) — escreva e revise um script antes de publicar
   na Biblioteca, com histórico de versões e diff entre elas.
 - **Suítes** (`/suites`) — sequências de teste, com sua própria ordem
-  (independente da ordem da Biblioteca).
+  (independente da ordem da Biblioteca), prioridade e opção de fixar no topo.
+- **Momentos** (`/momentos`) — lembretes com nome do que rodar em cada momento
+  do dia (suítes e testes isolados), com um check verde que vale até o fim do
+  dia.
 - **Histórico** (`/historico`) — registros manuais de execução (passou/falhou).
 - **Cobertura** (`/cobertura`) — checklist de cenários por tela do CRM.
-- **Checklist** (`/checklist`) — marcar cada script como aprovado/reprovado e
-  emitir um PDF do resultado.
+- **Checklist** (`/checklist`) — marcar cada script como aprovado/reprovado,
+  com placar das marcações, e emitir um PDF do resultado (com a faixa
+  "Resultado geral" em percentuais).
 - **Tags** (`/tags`) — catálogo de etiquetas compartilhado por todas as telas
   acima.
 
@@ -68,12 +80,13 @@ substituídas por equivalentes locais e fictícios** — ver detalhes abaixo.
   | Scripts na Biblioteca | 30 |
   | Conteúdo de cada script | 50.000 caracteres |
   | Suítes | 10 |
+  | Momentos | 10 |
   | Rascunhos | 10 |
   | Versões por rascunho | 10 (a mais antiga cai) |
   | Registros no histórico de execução | 50 (o mais antigo cai) |
   | Tamanho do anexo | 2MB |
 
-  Passar de um limite de contagem (scripts, suítes, rascunhos) mostra uma
+  Passar de um limite de contagem (scripts, suítes, momentos, rascunhos) mostra uma
   mensagem clara em vez de deixar criar; os limites que só evitam acúmulo
   (versões de rascunho, histórico de execução) descartam o item mais antigo
   em silêncio, sem travar quem está usando.

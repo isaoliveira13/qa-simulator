@@ -66,10 +66,10 @@ export default function SuitePage() {
 
   const [modo, setModo] = useState<"ver" | "editar">(isNova ? "editar" : "ver");
 
-  // O botão "Editar" da lista de suítes chega com ?modo=editar e abre direto na
-  // montagem (13/10/2026). Lido do window (e não com useSearchParams, que
-  // exigiria Suspense no build) e tirado da URL logo em seguida, pra um F5
-  // depois de salvar não reabrir a edição.
+  // "Editar" no menu da lista de suítes chega com ?modo=editar e abre direto na
+  // montagem. Lido do window (e não com useSearchParams, que exigiria Suspense
+  // no build) e tirado da URL logo em seguida, pra um F5 depois de salvar não
+  // reabrir a edição.
   useEffect(() => {
     if (isNova) return;
     const qs = new URLSearchParams(window.location.search);
@@ -110,7 +110,7 @@ export default function SuitePage() {
   // --- coisas que só o modo "ver" usa (são as da Biblioteca) ---
   const [runMsg, setRunMsg] = useState<{ id: string; text: string; url?: string; ok: boolean } | null>(null);
   const [localScript, setLocalScript] = useState<ScriptEntry | null>(null);
-  const [optHeaded, setOptHeaded] = useState(false);
+  const [optHeaded, setOptHeaded] = useState(true);
   const [optWorkers, setOptWorkers] = useState(false);
   const [workersCount, setWorkersCount] = useState(2);
   const [cmdAberto, setCmdAberto] = useState(false);
@@ -403,7 +403,7 @@ export default function SuitePage() {
                 setNome(e.target.value);
                 setSalvoAgora(false);
               }}
-              placeholder="Ex.: Regressão POP — homologação"
+              placeholder="Ex.: Regressão — homologação"
             />
           </div>
           <div className="field">
@@ -532,7 +532,7 @@ export default function SuitePage() {
                     className="btn-primary"
                     onClick={() => {
                       setLocalScript(s);
-                      setOptHeaded(false);
+                      setOptHeaded(true);
                       setOptWorkers(false);
                     }}
                   >

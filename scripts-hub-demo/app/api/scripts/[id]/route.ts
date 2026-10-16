@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getScript, deleteScript, updateScriptTags, updateScriptOrdem } from "@/lib/db";
+import { getScript, deleteScript, updateScriptTags, updateScriptOrdem, sincronizarEtiquetaFilho, setPaiDeScripts } from "@/lib/db";
+import { chaveDaLinha } from "@/lib/hierarquia";
 import { deleteAttachment } from "@/lib/github";
 
 export async function GET(
@@ -71,7 +72,14 @@ export async function DELETE(
     if (attachmentPath) {
       await deleteAttachment(attachmentPath);
     }
-    return NextResponse.json({ ok: true });
+    // Apagar um pai solta os filhos dele: eles perdem a etiqueta "Filho".
+    // E a escolha "so este script" dele (se tinha) sai da tabela.
+    let alterados: { id: string; tags: string[] }[] = [];
+    try {
+      await setPaiDeScripts([chaveDaLinha(id)], null);
+      alterados = await sincronizarEtiquetaFilho();
+    } catch {}
+    return NextResponse.json({ ok: true, alterados });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
